@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go:*)",
+      "Bash(npm:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)"
+    ]
+  }
+}
