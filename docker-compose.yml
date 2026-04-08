@@ -1,0 +1,69 @@
+# =============================================================================
+# Docker Compose 설정 파일
+# =============================================================================
+# 이 파일은 개발 환경에서 전체 스택(DB + 백엔드 + 프론트엔드)을
+# 한 명령으로 실행하기 위한 설정이다.
+#
+# 실행: docker compose up
+# 종료: docker compose down
+# DB 데이터 초기화: docker compose down -v
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 데이터베이스
+  # ---------------------------------------------------------------------------
+  # 유저 데이터를 저장하는 관계형 데이터베이스.
+  # pgdata 볼륨을 사용해 컨테이너를 재시작해도 데이터가 유지된다.
+  # migrations/ 폴더의 SQL 파일이 최초 실행 시 자동으로 실행된다.
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: harness
+      POSTGRES_USER: harness
+      POSTGRES_PASSWORD: harness
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U harness"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Go 백엔드 서버
+  # ---------------------------------------------------------------------------
+  # Gin 프레임워크 기반 REST API 서버.
+  # DB 서비스가 healthy 상태가 된 후에 시작된다.
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: harness
+      DB_PASSWORD: harness
+      DB_NAME: harness
+      JWT_SECRET: dev-secret-change-in-production
+
+  # ---------------------------------------------------------------------------
+  # React 프론트엔드
+  # ---------------------------------------------------------------------------
+  # Vite 개발 서버 또는 nginx로 정적 파일을 서빙한다.
+  # 백엔드가 먼저 시작된 후에 실행된다.
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
