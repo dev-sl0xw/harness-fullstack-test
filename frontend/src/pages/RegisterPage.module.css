@@ -1,0 +1,39 @@
+/* RegisterPage.module.css - 회원가입 페이지 스타일 */
+
+.container {
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 24px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.field input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.error {
+  color: #e53e3e;
+  background: #fff5f5;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}

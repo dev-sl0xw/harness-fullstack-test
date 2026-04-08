@@ -1,0 +1,70 @@
+/* UserDetailPage.module.css - 유저 상세 페이지 스타일 */
+
+.container {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 24px;
+}
+
+.backLink {
+  color: #3182ce;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.info {
+  background: #f7fafc;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.info p {
+  margin: 4px 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.field input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.deleteButton {
+  background: #e53e3e !important;
+}
+
+.error {
+  color: #e53e3e;
+  background: #fff5f5;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}

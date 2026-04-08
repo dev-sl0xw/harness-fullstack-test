@@ -1,0 +1,66 @@
+/* UserListPage.module.css - 유저 목록 페이지 스타일 */
+
+.container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.logoutButton {
+  background: #e53e3e;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table th {
+  background: #f7fafc;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.table td a {
+  color: #3182ce;
+  text-decoration: none;
+}
+
+.table td a:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  text-align: center;
+  color: #a0aec0;
+  padding: 40px;
+}
+
+.error {
+  color: #e53e3e;
+  background: #fff5f5;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
