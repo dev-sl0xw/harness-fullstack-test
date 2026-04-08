@@ -1,0 +1,91 @@
+# =============================================================================
+# GitHub Actions CI 파이프라인
+# =============================================================================
+# 이 파일은 코드가 push되거나 PR이 생성될 때 자동으로 실행되는
+# 지속적 통합(Continuous Integration) 파이프라인을 정의한다.
+#
+# 두 개의 job이 독립적으로 병렬 실행된다:
+#   - backend: Go 테스트 + 빌드
+#   - frontend: npm 린트 + 빌드
+#
+# 왜 CI가 필요한가?
+#   - 코드 변경이 기존 기능을 깨뜨리지 않는지 자동 확인
+#   - PR 머지 전에 빌드 성공 여부를 검증
+#   - 팀원 간 코드 품질 기준을 일관되게 유지
+# =============================================================================
+
+name: CI
+
+# 트리거 조건: main 브랜치에 push 또는 PR 생성 시 실행
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 백엔드 (Go) 테스트 + 빌드
+  # ---------------------------------------------------------------------------
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      # 저장소 코드를 체크아웃
+      - uses: actions/checkout@v4
+
+      # Go 환경 세팅
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      # 의존성 다운로드
+      - name: Download dependencies
+        run: go mod download
+
+      # 테스트 실행
+      # ./... 패턴은 모든 하위 패키지를 의미
+      - name: Run tests
+        run: go test ./...
+
+      # 빌드 확인
+      # 컴파일이 성공하는지만 확인 (바이너리는 사용하지 않음)
+      - name: Build
+        run: go build ./cmd/server
+
+  # ---------------------------------------------------------------------------
+  # 프론트엔드 (React + TypeScript) 린트 + 빌드
+  # ---------------------------------------------------------------------------
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node.js 환경 세팅
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # 의존성 설치
+      # npm ci: package-lock.json 기반으로 정확한 버전 설치 (CI 환경에 적합)
+      - name: Install dependencies
+        run: npm ci
+
+      # 린트 검사
+      # 코드 스타일과 잠재적 오류를 정적 분석
+      - name: Lint
+        run: npm run lint
+
+      # 프로덕션 빌드
+      # TypeScript 컴파일 + Vite 번들링이 성공하는지 확인
+      - name: Build
+        run: npm run build
