@@ -1,0 +1,95 @@
+# Harness Fullstack Test
+
+React + Vite 프론트엔드와 Go(Gin) 백엔드, PostgreSQL을 조합한 풀스택 보일러플레이트 프로젝트.
+MVP 우선 접근으로 User CRUD + JWT 인증을 구현하고, Docker Compose와 GitHub Actions CI를 포함한다.
+
+## 주석 규칙
+
+모든 코드 파일에 한국어 학습용 상세 주석을 포함한다:
+- 파일 상단: 역할, 시스템 내 위치, 다른 파일과의 관계
+- 함수마다: 목적, 파라미터, 반환값, 호출 흐름
+- 설계 의도: "왜 이렇게 하는지" 포함
+
+## 기술 스택
+
+- **Backend**: Go 1.22+ / Gin / lib/pq / golang-jwt / bcrypt
+- **Frontend**: React 18 / Vite / TypeScript / React Router v6 / CSS Modules
+- **DB**: PostgreSQL 16
+- **Infra**: Docker Compose / GitHub Actions CI
+
+## 개발 명령어
+
+```bash
+# 백엔드 빌드
+cd backend && go build ./cmd/server
+
+# 프론트엔드 빌드
+cd frontend && npm run build
+
+# Docker Compose 실행
+docker compose up -d
+
+# Docker Compose 설정 검증
+docker compose config
+```
+
+## 설계 문서
+
+- 설계 스펙: `docs/superpowers/specs/2026-04-08-fullstack-harness-design.md`
+- 구현 계획: `docs/superpowers/plans/2026-04-09-fullstack-harness-plan.md`
+
+---
+
+## 하네스: Fullstack Builder
+
+**목표:** 풀스택 프로젝트를 에이전트 팀으로 병렬 구현하고 통합 검증한다.
+
+**에이전트 팀:**
+| 에이전트 | 역할 |
+|---------|------|
+| backend-dev | Go(Gin) 백엔드 전체 (모델, 서비스, 핸들러, 미들웨어, DB) |
+| frontend-dev | React 프론트엔드 전체 (라우팅, 인증, 페이지, 컴포넌트) |
+| infra-dev | Docker Compose, GitHub Actions CI, 환경설정 |
+| qa-engineer | 프론트↔백 정합성 검증, 빌드 확인, 통합 테스트 |
+
+**스킬:**
+| 스킬 | 용도 | 사용 에이전트 |
+|------|------|-------------|
+| fullstack-orchestrator | 에이전트 팀 조율, 워크플로우 관리 | 리더 (메인) |
+| backend-build | Go 백엔드 구현 가이드 | backend-dev |
+| frontend-build | React 프론트엔드 구현 가이드 | frontend-dev |
+| infra-setup | Docker, CI, 설정 구성 가이드 | infra-dev |
+| qa-verify | 통합 정합성 검증 방법론 | qa-engineer |
+
+**실행 규칙:**
+- 풀스택 구현/빌드/전체 스택 구축 요청 시 `fullstack-orchestrator` 스킬을 통해 에이전트 팀으로 처리하라
+- 백엔드만/프론트엔드만/인프라만 수정 요청 시에도 오케스트레이터를 통해 해당 에이전트만 재호출
+- 단순 질문/확인은 에이전트 팀 없이 직접 응답해도 무방
+- 모든 에이전트는 `model: "opus"` 사용
+- 중간 산출물: `_workspace/` 디렉토리
+
+**디렉토리 구조:**
+```
+.claude/
+├── agents/
+│   ├── backend-dev.md
+│   ├── frontend-dev.md
+│   ├── infra-dev.md
+│   └── qa-engineer.md
+└── skills/
+    ├── fullstack-orchestrator/
+    │   └── SKILL.md
+    ├── backend-build/
+    │   └── SKILL.md
+    ├── frontend-build/
+    │   └── SKILL.md
+    ├── infra-setup/
+    │   └── SKILL.md
+    └── qa-verify/
+        └── SKILL.md
+```
+
+**변경 이력:**
+| 날짜 | 변경 내용 | 대상 | 사유 |
+|------|----------|------|------|
+| 2026-04-09 | 초기 구성 | 전체 | 풀스택 하네스 신규 구축 |
