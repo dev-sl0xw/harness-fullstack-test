@@ -1,6 +1,6 @@
 ---
 name: fullstack-orchestrator
-description: "풀스택 프로젝트(Go+React+PostgreSQL) 에이전트 팀을 조율하는 오케스트레이터. 풀스택 구현, 프로젝트 빌드, 전체 스택 구축, 백엔드+프론트엔드 개발 요청 시 이 스킬을 사용. PR 생성 직전의 Codex 리뷰 단계도 이 오케스트레이터가 관리한다. 후속 작업: 풀스택 수정, 부분 재실행, 업데이트, 보완, 다시 실행, 이전 결과 개선, 특정 에이전트만 재실행, PR 리뷰 요청 시에도 반드시 이 스킬을 사용."
+description: "풀스택 프로젝트(Go+React+PostgreSQL) 에이전트 팀을 조율하는 오케스트레이터. 풀스택 구현, 프로젝트 빌드, 전체 스택 구축, 백엔드+프론트엔드 개발 요청 시 이 스킬을 사용. 신규 프로젝트 초기화 시 규칙·컨벤션·가드레일 수립, PR 생성 직전의 Codex 리뷰 단계 모두 이 오케스트레이터가 관리한다. 후속 작업: 풀스택 수정, 부분 재실행, 업데이트, 보완, 다시 실행, 이전 결과 개선, 특정 에이전트만 재실행, PR 리뷰 요청, 컨벤션 수립/수정, KISS/YAGNI/DRY/SOLID 적용, 12-Factor/환경 분리 도입, 시크릿 관리, AI 가드레일 추가 요청 시에도 반드시 이 스킬을 사용."
 ---
 
 # Fullstack Orchestrator
@@ -13,16 +13,18 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
 
 | 팀원 | 에이전트 정의 | 역할 | 스킬 | 출력 |
 |------|-------------|------|------|------|
+| project-architect | `.claude/agents/project-architect.md` | 프로젝트 규칙·컨벤션·가드레일 수립 | project-conventions | `docs/conventions/`, `.env.example`, CLAUDE.md 가드레일 섹션 |
 | backend-dev | `.claude/agents/backend-dev.md` | Go 백엔드 전체 | backend-build | `backend/` |
 | frontend-dev | `.claude/agents/frontend-dev.md` | React 프론트엔드 전체 | frontend-build | `frontend/` |
 | infra-dev | `.claude/agents/infra-dev.md` | Docker, CI, 설정 | infra-setup | 루트 설정 파일들 |
 | qa-engineer | `.claude/agents/qa-engineer.md` | 통합 정합성 검증 (경계면 계약) | qa-verify | `_workspace/qa_report.md` |
 | code-reviewer | `.claude/agents/code-reviewer.md` | Codex 기반 PR 품질 리뷰 | codex-review | `_workspace/review_report_*.md` |
 
-**역할 경계 (qa-engineer vs code-reviewer):**
-- `qa-engineer`는 **경계면 계약 검증**(API shape ↔ 타입, 라우트 매핑, 빌드 성공, 인증 흐름 연속성)을 담당한다. 구현 모듈이 완성될 때마다 **점진적(incremental)**으로 실행된다.
-- `code-reviewer`는 **코드 품질 second opinion**(로직 결함, 엣지 케이스, 설계 선택, 보안/성능 리스크)을 담당한다. **PR 생성 직전에 1회** 실행된다.
-- 두 에이전트는 서로의 보고서를 먼저 읽어 중복 지적을 피한다.
+**역할 경계 (project-architect vs qa-engineer vs code-reviewer):**
+- `project-architect`는 **규칙 수립**(원칙·가드레일·환경 분리 골격) 담당. 프로젝트 초기 1회 또는 규칙 변경 시점에만 실행된다. 코드를 작성하지 않고 `docs/conventions/`와 가드레일 문서를 만든다.
+- `qa-engineer`는 **경계면 계약 검증**(API shape ↔ 타입, 라우트 매핑, 빌드 성공, 인증 흐름 연속성) 담당. 구현 모듈이 완성될 때마다 **점진적(incremental)**으로 실행된다.
+- `code-reviewer`는 **코드 품질 second opinion**(로직 결함, 엣지 케이스, 설계 선택, 보안/성능 리스크) 담당. **PR 생성 직전에 1회** 실행된다. 리뷰 시 `docs/conventions/`를 reference로 로드하여 평가 기준으로 사용.
+- 세 에이전트는 서로의 산출물을 먼저 읽어 중복 지적을 피한다.
 
 ## 워크플로우
 
@@ -32,17 +34,47 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
 
 1. `_workspace/` 디렉토리 존재 여부 확인
 2. `backend/`, `frontend/` 디렉토리에 기존 코드 존재 여부 확인
-3. 실행 모드 결정:
-   - **코드 미존재** → 초기 실행. Phase 1로 진행
+3. `docs/conventions/` 디렉토리 존재 여부 확인 (규칙 수립 여부 판단)
+4. 실행 모드 결정:
+   - **코드 미존재 + conventions 미존재** → 초기 실행. Phase 0-5(규칙 수립)부터 진행
+   - **코드 미존재 + conventions 존재** → 초기 구현 실행. Phase 1로 진행
    - **코드 존재 + 사용자가 부분 수정 요청** → 부분 재실행. 해당 에이전트만 재호출
    - **코드 존재 + 새 입력/전체 재구축 요청** → 새 실행. 기존 `_workspace/`를 `_workspace_prev/`로 이동
+   - **사용자가 규칙·컨벤션·가드레일 수립/수정 요청** → Phase 0-5만 실행
+
+### Phase 0-5: 프로젝트 규칙 수립 (project-architect)
+
+**언제 실행되는가:**
+- 초기 신규 프로젝트 빌드 시 (Phase 1보다 먼저)
+- 사용자가 명시적으로 규칙·컨벤션·가드레일 추가/수정을 요청할 때
+- 새 원칙 도입 시 (예: "12-Factor 적용해줘", "AI 가드레일 추가해줘")
+
+**워크플로우:**
+
+1. **선행 조건 확인:** `docs/conventions/` 존재 여부 확인 → 없으면 신규 수립, 있으면 감사(audit) 모드
+2. **project-architect 스폰:**
+   - `general-purpose` 타입, `model: "opus"`
+   - 에이전트 정의 파일(`.claude/agents/project-architect.md`)과 `project-conventions` 스킬을 읽도록 지시
+3. **수립 요청:**
+   - 리더 → project-architect에게 SendMessage: 적용할 원칙 항목 (기본은 Phase A 8개 항목 전체), 기존 컨텍스트 참고 사항(예: 의존성 사고 사례)
+4. **산출 확인:**
+   - `docs/conventions/{README,principles,secrets,12-factor,dependencies,ai-guardrails}.md` 생성 확인
+   - `.env.example` 생성/갱신 확인
+   - `.gitignore` 보강 확인
+   - CLAUDE.md 가드레일 섹션 갱신 확인
+5. **후속 에이전트에 컨벤션 전파:** 이후 Phase 2에서 backend-dev/frontend-dev/infra-dev/code-reviewer를 스폰할 때, 각 에이전트에게 *작업 시작 전 `docs/conventions/`를 reference로 읽도록* 명시 지시
+
+**감사(audit) 모드 동작:**
+- 기존 conventions 문서가 있을 때는 새로 만들지 않고, 누락 항목과 위반 사항만 `docs/conventions/audit.md`에 기록
+- 사용자에게 보고하고 보강 여부 확인
 
 ### Phase 1: 준비
 
 1. 설계 스펙 확인: `docs/superpowers/specs/2026-04-08-fullstack-harness-design.md`
 2. 구현 계획 확인: `docs/superpowers/plans/2026-04-09-fullstack-harness-plan.md`
 3. `_workspace/` 디렉토리 생성 (초기 실행 시)
-4. 작업 범위 결정:
+4. **`docs/conventions/` 존재 확인** (Phase 0-5에서 수립되어 있어야 함)
+5. 작업 범위 결정:
    - 전체 실행: Task 1~15 전체
    - 부분 재실행: 사용자 지정 Task만
 
@@ -53,12 +85,13 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
    TeamCreate(team_name: "fullstack-team")
    ```
 
-2. **초기 팀원 스폰 — 4명** (모든 에이전트는 `model: "opus"` 사용):
-   - `backend-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, 구현 계획 Task 1~7을 수행하도록 지시.
-   - `frontend-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, 구현 계획 Task 8~12를 수행하도록 지시.
-   - `infra-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, 구현 계획 Task 2(일부), 13~14를 수행하도록 지시.
+2. **초기 팀원 스폰 — 4명** (모든 에이전트는 `model: "opus"` 사용). 각 에이전트는 작업 시작 전 **`docs/conventions/` 전체를 reference로 읽도록** 지시한다:
+   - `backend-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(특히 principles, secrets, 12-factor, dependencies, ai-guardrails)를 reference로 로드한 뒤, 구현 계획 Task 1~7을 수행하도록 지시.
+   - `frontend-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(같은 항목)를 reference로 로드한 뒤, 구현 계획 Task 8~12를 수행하도록 지시.
+   - `infra-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(특히 12-factor, secrets, ai-guardrails)를 reference로 로드한 뒤, 구현 계획 Task 2(일부), 13~14를 수행하도록 지시.
    - `qa-engineer`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, 다른 에이전트의 작업 완료를 대기하다 점진적 검증을 수행하도록 지시.
 
+   **`project-architect`는 Phase 0-5에서만 동작**하며, Phase 2의 팀에는 포함되지 않는다.
    **`code-reviewer`는 Phase 4-5에서 필요 시점에 동적으로 스폰**된다 (Phase 2에서는 스폰하지 않음). 이는 팀 수명주기를 짧게 유지하고, 구현/QA 단계에서 idle 에이전트가 유휴 상태로 대기하는 비용을 피하기 위함이다.
 
 3. 작업 등록 (TaskCreate):
@@ -106,6 +139,51 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
    - `go build ./cmd/server` (백엔드)
    - `npm run build` (프론트엔드)
 4. 최종 QA 보고서를 `_workspace/qa_report.md`에 저장
+
+### Phase 4-4: README 갱신 영향도 평가
+
+PR을 만들기 직전(Codex 리뷰 직전)에, 이번 변경이 **README.md / README_KO.md / README_JA.md**에 반드시 반영되어야 하는지 자동 평가하고, 필요한 경우 README를 갱신한다. 사용자가 매번 "README도 업데이트해줘"라고 요청하지 않아도 자동 동작한다.
+
+**README 갱신이 필요한 변경 유형 (자동 트리거 조건):**
+
+| 변경 영역 | 갱신 필요 여부 | 갱신할 README 섹션 |
+|---------|--------------|------------------|
+| 새 에이전트 추가/삭제 (`.claude/agents/*.md`) | **필수** | 하네스 구조 / 에이전트 목록 |
+| 새 스킬 추가/삭제 (`.claude/skills/*/SKILL.md`) | **필수** | 하네스 구조 / 스킬 목록 |
+| 디렉토리 구조 변경 (`backend/`, `frontend/`, `docs/`, `_workspace/` 등 최상위 레벨) | **필수** | 프로젝트 구조 / 디렉토리 트리 |
+| 새 컨벤션/규칙 (`docs/conventions/`) 추가 | **필수** | 프로젝트 규칙 / 컨벤션 |
+| 신규 환경변수 추가 (`.env.example` 변경) | **필수** | 환경 설정 / 시작하기 |
+| 빌드/실행 명령어 변경 (`package.json` scripts, Makefile, Dockerfile entrypoint) | **필수** | 개발 명령어 / 시작하기 |
+| 새 외부 서비스/포트 추가 (Redis, Elasticsearch 등) | **필수** | 기술 스택 / 아키텍처 |
+| 인증/권한 흐름 변경 | 필수 | 보안 / 인증 |
+| 일반 비즈니스 로직 변경 (핸들러 내부, 컴포넌트 내부 등) | 불필요 | — |
+| 버그 수정, refactoring, 주석 보강 | 불필요 | — |
+| lock 파일만 변경 | 불필요 | — |
+
+**워크플로우:**
+
+1. **변경 영향도 분석:**
+   - `git diff main...HEAD --stat`으로 변경 파일 목록 확보
+   - 위 표의 "필수" 패턴 중 하나라도 매칭되면 다음 단계로, 그렇지 않으면 Phase 4-5로 점프
+2. **README 갱신 대상 결정:**
+   - 매칭된 변경 유형별로 README의 어느 섹션을 갱신해야 하는지 매핑
+   - 다국어 README가 모두 존재하는 경우 (`README.md`, `README_KO.md`, `README_JA.md`) **세 파일 모두** 동일하게 갱신 — 한 언어만 업데이트하는 drift 금지
+3. **자동 갱신 수행:**
+   - 리더(메인 에이전트)가 직접 Edit 도구로 README를 갱신. 에이전트 팀에 별도 README 전담 에이전트는 만들지 않는다 (단순 동기화 작업이며 새 에이전트 도입은 YAGNI 위반)
+   - 갱신 내용은 *변경된 사실의 반영*으로 한정. 마케팅 카피·재구성·번역 개선 등 범위 외 작업 금지
+   - 다국어 일관성: 한국어 표현·영어 표현·일본어 표현이 같은 정보를 담도록 단순 미러링
+4. **갱신 후 검증:**
+   - 세 README 파일에서 변경된 섹션의 정보가 일치하는지 grep으로 교차 확인
+   - 깨진 내부 링크/앵커가 없는지 확인 (`.md` 내부 헤딩 참조)
+5. **PR body 메모:**
+   - PR 본문에 "README 자동 갱신 — {변경 유형}, 대상 파일: README.md/README_KO.md/README_JA.md" 한 줄 기록
+6. Phase 4-5(Codex 리뷰)로 진행. **README 변경분도 Codex 리뷰 범위에 포함**된다.
+
+**자동 갱신 건너뛰기 조건:**
+
+- README 파일 자체가 존재하지 않는 프로젝트 단계 (초기 빌드 중)
+- 사용자가 이번 PR에 대해 명시적으로 "README는 다음 PR에서 같이"라고 지시한 경우
+- 변경이 모두 "불필요" 카테고리
 
 ### Phase 4-5: PR 생성 직전 Codex 리뷰
 

@@ -270,6 +270,7 @@ This project is wired up for [Claude Code](https://claude.com/claude-code) + the
 
 | Agent | Role | Execution |
 |-------|------|-----------|
+| `project-architect` | Project rules, conventions, guardrails (KISS/YAGNI/DRY/SOLID, 12-Factor, env separation, secrets, dependency hygiene, AI guardrails) | Initial setup + on-rule-change |
 | `backend-dev` | Go (Gin) backend (models, services, handlers, middleware, DB) | Parallel |
 | `frontend-dev` | React frontend (routing, auth, pages, components) | Parallel |
 | `infra-dev` | Docker Compose, GitHub Actions CI, configuration | Parallel |
@@ -280,12 +281,29 @@ This project is wired up for [Claude Code](https://claude.com/claude-code) + the
 
 | Skill | Purpose | Used by |
 |-------|---------|---------|
-| `fullstack-orchestrator` | Team coordination, workflow management | Leader |
+| `fullstack-orchestrator` | Team coordination, workflow management (incl. Phase 0-5 rule setup, Phase 4-4 README auto-sync, Phase 4-5 Codex review) | Leader |
+| `project-conventions` | Reference for principles, guardrails, env separation | `project-architect` (authoring), all impl agents (work reference), `code-reviewer` (review criteria) |
 | `backend-build` | Go backend implementation guide | `backend-dev` |
 | `frontend-build` | React frontend implementation guide | `frontend-dev` |
 | `infra-setup` | Docker, CI, config guide | `infra-dev` |
 | `qa-verify` | Contract verification methodology | `qa-engineer` |
 | `codex-review` | Codex CLI invocation + review report format | `code-reviewer` |
+
+### Workflow Phases (managed by `fullstack-orchestrator`)
+
+- **Phase 0-5 — Rule setup:** On a fresh project, `project-architect` runs first and writes `docs/conventions/` (principles, secrets, 12-factor, dependencies, ai-guardrails). Implementation agents load these as a reference before writing code.
+- **Phase 2-4 — Parallel build:** `backend-dev`, `frontend-dev`, `infra-dev` build in parallel. `qa-engineer` runs incrementally as modules land.
+- **Phase 4-4 — README auto-sync:** Just before PR creation, the orchestrator inspects the diff. If the change matches a tracked trigger (new agent/skill, top-level directory change, new convention, env var, build command, external service, auth flow), it auto-updates `README.md`, `README_KO.md`, and `README_JA.md` together (no language-only drift). Pure code changes skip this phase.
+- **Phase 4-5 — Codex review:** `code-reviewer` runs `codex review --base main` for an independent second opinion before opening the PR.
+
+### System-level guardrails (apply to every agent)
+
+- **Read-blocked:** `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`
+- **Write-blocked:** all of the above, plus user system files (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) and production config (`config/prod.yaml`)
+- **Exec-blocked (without explicit user approval):** wildcard `rm -rf`, `git push -f`, `git reset --hard`, direct prod DB access, `curl ... | sh`, `sudo`
+- **Log-blocked:** environment-variable dumps, `Authorization` headers, plain-text DB connection strings
+
+Full guardrail details and rationale live in `docs/conventions/ai-guardrails.md` (created by `project-architect`).
 
 ### How to Run
 

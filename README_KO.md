@@ -268,6 +268,7 @@ Claude Code 인증      ← Anthropic 측에서 별도 관리
 
 | 에이전트 | 역할 | 실행 시점 |
 |---------|------|----------|
+| `project-architect` | 프로젝트 규칙·컨벤션·가드레일 수립 (KISS/YAGNI/DRY/SOLID, 12-Factor, 환경 분리, 비밀 관리, 의존성 위생, AI 가드레일) | 초기 1회 + 규칙 변경 시 |
 | `backend-dev` | Go(Gin) 백엔드 (모델, 서비스, 핸들러, 미들웨어, DB) | 병렬 |
 | `frontend-dev` | React 프론트엔드 (라우팅, 인증, 페이지, 컴포넌트) | 병렬 |
 | `infra-dev` | Docker Compose, GitHub Actions CI, 환경설정 | 병렬 |
@@ -278,12 +279,29 @@ Claude Code 인증      ← Anthropic 측에서 별도 관리
 
 | 스킬 | 용도 | 사용 에이전트 |
 |------|------|-------------|
-| `fullstack-orchestrator` | 에이전트 팀 조율, 워크플로우 관리 | 리더 |
+| `fullstack-orchestrator` | 에이전트 팀 조율, 워크플로우 관리 (Phase 0-5 규칙 수립, Phase 4-4 README 자동 동기화, Phase 4-5 Codex 리뷰 포함) | 리더 |
+| `project-conventions` | 원칙·가드레일·환경 분리 reference | `project-architect`(작성 기준), 모든 구현 에이전트(작업 reference), `code-reviewer`(리뷰 기준) |
 | `backend-build` | Go 백엔드 구현 가이드 | `backend-dev` |
 | `frontend-build` | React 프론트엔드 구현 가이드 | `frontend-dev` |
 | `infra-setup` | Docker, CI, 설정 구성 가이드 | `infra-dev` |
 | `qa-verify` | 경계면 계약 검증 방법론 | `qa-engineer` |
 | `codex-review` | Codex CLI 호출 + 리뷰 보고서 작성 가이드 | `code-reviewer` |
+
+### 워크플로우 단계 (`fullstack-orchestrator`가 관리)
+
+- **Phase 0-5 — 규칙 수립:** 신규 프로젝트일 경우 `project-architect`가 가장 먼저 실행되어 `docs/conventions/`(principles, secrets, 12-factor, dependencies, ai-guardrails)를 작성한다. 이후 구현 에이전트는 작업 시작 전 이 문서를 reference로 로드한다.
+- **Phase 2-4 — 병렬 구현:** `backend-dev`/`frontend-dev`/`infra-dev`가 병렬로 작업하고, `qa-engineer`가 모듈 완성마다 incremental하게 검증한다.
+- **Phase 4-4 — README 자동 동기화:** PR 생성 직전, 오케스트레이터가 diff를 검사하여 트리거 조건(에이전트/스킬 추가, 최상위 디렉토리 변경, 컨벤션 추가, 환경변수, 빌드 명령어, 외부 서비스, 인증 흐름 변경)에 매칭되면 `README.md`/`README_KO.md`/`README_JA.md` 세 파일을 함께 갱신한다 (한 언어만 갱신하는 drift 방지). 일반 코드 변경은 이 단계를 건너뛴다.
+- **Phase 4-5 — Codex 리뷰:** PR 생성 직전 `code-reviewer`가 `codex review --base main`을 실행하여 독립적인 second opinion을 받는다.
+
+### 시스템 레벨 가드레일 (모든 에이전트에 적용)
+
+- **read 금지:** `.env`, `.env.*` (단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`
+- **write 금지:** 위 파일 모두 + 사용자 시스템 설정 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + production config (`config/prod.yaml`)
+- **exec 금지 (사용자 명시 승인 없이):** 와일드카드 `rm -rf`, `git push -f`, `git reset --hard`, prod DB 직접 접근, `curl ... | sh`, `sudo`
+- **로깅 금지:** 환경변수 dump, `Authorization` 헤더, DB 평문 connection string
+
+상세 가드레일과 그 근거는 `docs/conventions/ai-guardrails.md`(`project-architect`가 생성)에 기록된다.
 
 ### 실행 방법
 

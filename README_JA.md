@@ -268,6 +268,7 @@ Claude Code 認証      ← Anthropic 側で別途管理
 
 | エージェント | 役割 | 実行タイミング |
 |------------|------|--------------|
+| `project-architect` | プロジェクトのルール・規約・ガードレール策定 (KISS/YAGNI/DRY/SOLID, 12-Factor, 環境分離, シークレット管理, 依存衛生, AI ガードレール) | 初期 1 回 + ルール変更時 |
 | `backend-dev` | Go (Gin) バックエンド (モデル、サービス、ハンドラー、ミドルウェア、DB) | 並列 |
 | `frontend-dev` | React フロントエンド (ルーティング、認証、ページ、コンポーネント) | 並列 |
 | `infra-dev` | Docker Compose, GitHub Actions CI, 環境設定 | 並列 |
@@ -278,12 +279,29 @@ Claude Code 認証      ← Anthropic 側で別途管理
 
 | スキル | 用途 | 使用エージェント |
 |-------|------|---------------|
-| `fullstack-orchestrator` | エージェントチーム調整、ワークフロー管理 | リーダー |
+| `fullstack-orchestrator` | エージェントチーム調整、ワークフロー管理 (Phase 0-5 ルール策定、Phase 4-4 README 自動同期、Phase 4-5 Codex レビューを含む) | リーダー |
+| `project-conventions` | 原則・ガードレール・環境分離の reference | `project-architect`(策定基準)、すべての実装エージェント(作業 reference)、`code-reviewer`(レビュー基準) |
 | `backend-build` | Go バックエンド実装ガイド | `backend-dev` |
 | `frontend-build` | React フロントエンド実装ガイド | `frontend-dev` |
 | `infra-setup` | Docker, CI, 設定構成ガイド | `infra-dev` |
 | `qa-verify` | 契約検証方法論 | `qa-engineer` |
 | `codex-review` | Codex CLI 呼び出し + レビュー報告書作成ガイド | `code-reviewer` |
+
+### ワークフローフェーズ (`fullstack-orchestrator` が管理)
+
+- **Phase 0-5 — ルール策定:** 新規プロジェクトでは `project-architect` が最初に実行され、`docs/conventions/`(principles, secrets, 12-factor, dependencies, ai-guardrails) を作成する。実装エージェントはコードを書き始める前にこれらを reference として読み込む。
+- **Phase 2-4 — 並列ビルド:** `backend-dev`/`frontend-dev`/`infra-dev` が並列で構築し、`qa-engineer` がモジュール完成ごとに incremental に検証する。
+- **Phase 4-4 — README 自動同期:** PR 作成直前にオーケストレーターが diff を検査し、トリガー条件 (新しいエージェント/スキル、トップレベルディレクトリ変更、新しい規約、環境変数、ビルドコマンド、外部サービス、認証フロー変更) にマッチした場合、`README.md`/`README_KO.md`/`README_JA.md` の 3 ファイルを同時に更新する (1 言語のみ更新する drift を防止)。純粋なコード変更はこのフェーズをスキップする。
+- **Phase 4-5 — Codex レビュー:** PR 作成直前に `code-reviewer` が `codex review --base main` を実行し、独立したセカンドオピニオンを取得する。
+
+### システムレベルのガードレール (すべてのエージェントに適用)
+
+- **読み取り禁止:** `.env`, `.env.*` (ただし `.env.example` は許可), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`
+- **書き込み禁止:** 上記すべて + ユーザーシステム設定 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + 本番設定 (`config/prod.yaml`)
+- **実行禁止 (ユーザーの明示的な承認なし):** ワイルドカード `rm -rf`, `git push -f`, `git reset --hard`, 本番 DB への直接アクセス, `curl ... | sh`, `sudo`
+- **ロギング禁止:** 環境変数のダンプ、`Authorization` ヘッダー、平文の DB 接続文字列
+
+詳細なガードレールとその根拠は `docs/conventions/ai-guardrails.md` (`project-architect` が作成) に記録される。
 
 ### 実行方法
 
