@@ -70,6 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 // useAuth는 AuthContext에 접근하기 위한 커스텀 훅이다.
 // 하위 컴포넌트에서 const { token, login, logout } = useAuth() 형태로 사용한다.
+//
+// Note: 이 파일은 컴포넌트(AuthProvider)와 훅(useAuth)을 함께 export 한다.
+// react-refresh/only-export-components 룰은 이 패턴에서 HMR이 다소 제한될 수
+// 있다고 경고하는데, 이는 개발 시 fast-refresh 동작상 이점이 줄어들 뿐
+// 런타임 동작에는 영향이 없다. auth context는 React 커뮤니티에서 매우 흔한
+// "Provider + use훅" 패턴이며, 학습 목적상 한 파일에 두는 것이 흐름 파악에
+//유리하다고 판단하여 의도적으로 disable한다. 향후 fast-refresh 최적화가
+// 필요하면 useAuth만 별도 파일로 분리할 수 있다.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
   if (!context) {
