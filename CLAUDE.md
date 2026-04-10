@@ -50,7 +50,8 @@ docker compose config
 | backend-dev | Go(Gin) 백엔드 전체 (모델, 서비스, 핸들러, 미들웨어, DB) |
 | frontend-dev | React 프론트엔드 전체 (라우팅, 인증, 페이지, 컴포넌트) |
 | infra-dev | Docker Compose, GitHub Actions CI, 환경설정 |
-| qa-engineer | 프론트↔백 정합성 검증, 빌드 확인, 통합 테스트 |
+| qa-engineer | 프론트↔백 경계면 계약 검증, 빌드 확인, 통합 정합성 (incremental) |
+| code-reviewer | PR 생성 직전 Codex 기반 코드 품질 second opinion (per-PR) |
 
 **스킬:**
 | 스킬 | 용도 | 사용 에이전트 |
@@ -59,14 +60,17 @@ docker compose config
 | backend-build | Go 백엔드 구현 가이드 | backend-dev |
 | frontend-build | React 프론트엔드 구현 가이드 | frontend-dev |
 | infra-setup | Docker, CI, 설정 구성 가이드 | infra-dev |
-| qa-verify | 통합 정합성 검증 방법론 | qa-engineer |
+| qa-verify | 경계면 계약 검증 방법론 (shape/타입/빌드) | qa-engineer |
+| codex-review | Codex CLI 기반 PR 리뷰 + 보고서 작성 가이드 | code-reviewer |
 
 **실행 규칙:**
 - 풀스택 구현/빌드/전체 스택 구축 요청 시 `fullstack-orchestrator` 스킬을 통해 에이전트 팀으로 처리하라
 - 백엔드만/프론트엔드만/인프라만 수정 요청 시에도 오케스트레이터를 통해 해당 에이전트만 재호출
+- **PR 생성 직전**에는 `code-reviewer`를 통해 `codex-review` 스킬로 Codex second opinion 리뷰를 1회 수행한 후 PR 생성
+- `qa-engineer`는 **경계면 계약 검증**(incremental), `code-reviewer`는 **코드 품질 리뷰**(per-PR)로 역할 분리
 - 단순 질문/확인은 에이전트 팀 없이 직접 응답해도 무방
 - 모든 에이전트는 `model: "opus"` 사용
-- 중간 산출물: `_workspace/` 디렉토리
+- 중간 산출물: `_workspace/` 디렉토리 (QA 보고서: `qa_report.md`, 리뷰 보고서: `review_report_*.md`)
 
 **디렉토리 구조:**
 ```
@@ -75,7 +79,8 @@ docker compose config
 │   ├── backend-dev.md
 │   ├── frontend-dev.md
 │   ├── infra-dev.md
-│   └── qa-engineer.md
+│   ├── qa-engineer.md
+│   └── code-reviewer.md
 └── skills/
     ├── fullstack-orchestrator/
     │   └── SKILL.md
@@ -85,7 +90,9 @@ docker compose config
     │   └── SKILL.md
     ├── infra-setup/
     │   └── SKILL.md
-    └── qa-verify/
+    ├── qa-verify/
+    │   └── SKILL.md
+    └── codex-review/
         └── SKILL.md
 ```
 
@@ -93,3 +100,4 @@ docker compose config
 | 날짜 | 변경 내용 | 대상 | 사유 |
 |------|----------|------|------|
 | 2026-04-09 | 초기 구성 | 전체 | 풀스택 하네스 신규 구축 |
+| 2026-04-10 | code-reviewer 에이전트 + codex-review 스킬 추가 | agents/code-reviewer.md, skills/codex-review/, fullstack-orchestrator | PR 생성 직전 Codex 기반 독립 second opinion 리뷰 도입. qa-engineer(경계면 계약 검증)와 역할 분리 — 전문성/병렬성/컨텍스트/재사용성 4축 모두 분리가 유리 |

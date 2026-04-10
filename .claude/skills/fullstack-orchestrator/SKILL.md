@@ -1,6 +1,6 @@
 ---
 name: fullstack-orchestrator
-description: "풀스택 프로젝트(Go+React+PostgreSQL) 에이전트 팀을 조율하는 오케스트레이터. 풀스택 구현, 프로젝트 빌드, 전체 스택 구축, 백엔드+프론트엔드 개발 요청 시 이 스킬을 사용. 후속 작업: 풀스택 수정, 부분 재실행, 업데이트, 보완, 다시 실행, 이전 결과 개선, 특정 에이전트만 재실행 요청 시에도 반드시 이 스킬을 사용."
+description: "풀스택 프로젝트(Go+React+PostgreSQL) 에이전트 팀을 조율하는 오케스트레이터. 풀스택 구현, 프로젝트 빌드, 전체 스택 구축, 백엔드+프론트엔드 개발 요청 시 이 스킬을 사용. PR 생성 직전의 Codex 리뷰 단계도 이 오케스트레이터가 관리한다. 후속 작업: 풀스택 수정, 부분 재실행, 업데이트, 보완, 다시 실행, 이전 결과 개선, 특정 에이전트만 재실행, PR 리뷰 요청 시에도 반드시 이 스킬을 사용."
 ---
 
 # Fullstack Orchestrator
@@ -16,7 +16,13 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
 | backend-dev | `.claude/agents/backend-dev.md` | Go 백엔드 전체 | backend-build | `backend/` |
 | frontend-dev | `.claude/agents/frontend-dev.md` | React 프론트엔드 전체 | frontend-build | `frontend/` |
 | infra-dev | `.claude/agents/infra-dev.md` | Docker, CI, 설정 | infra-setup | 루트 설정 파일들 |
-| qa-engineer | `.claude/agents/qa-engineer.md` | 통합 정합성 검증 | qa-verify | `_workspace/qa_report.md` |
+| qa-engineer | `.claude/agents/qa-engineer.md` | 통합 정합성 검증 (경계면 계약) | qa-verify | `_workspace/qa_report.md` |
+| code-reviewer | `.claude/agents/code-reviewer.md` | Codex 기반 PR 품질 리뷰 | codex-review | `_workspace/review_report_*.md` |
+
+**역할 경계 (qa-engineer vs code-reviewer):**
+- `qa-engineer`는 **경계면 계약 검증**(API shape ↔ 타입, 라우트 매핑, 빌드 성공, 인증 흐름 연속성)을 담당한다. 구현 모듈이 완성될 때마다 **점진적(incremental)**으로 실행된다.
+- `code-reviewer`는 **코드 품질 second opinion**(로직 결함, 엣지 케이스, 설계 선택, 보안/성능 리스크)을 담당한다. **PR 생성 직전에 1회** 실행된다.
+- 두 에이전트는 서로의 보고서를 먼저 읽어 중복 지적을 피한다.
 
 ## 워크플로우
 
@@ -99,6 +105,34 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
    - `npm run build` (프론트엔드)
 4. 최종 QA 보고서를 `_workspace/qa_report.md`에 저장
 
+### Phase 4-5: PR 생성 직전 Codex 리뷰
+
+PR을 만들기 직전에 `code-reviewer`에게 리뷰를 요청하여 머지 전 second opinion을 확보한다. 이 Phase는 **PR 단위로 실행**되며, 각 PR 작업마다 1회씩 수행된다.
+
+1. **선행 조건 확인:**
+   - Phase 4의 QA가 완료되어 있는지 확인 (`_workspace/qa_report.md` 존재 + 빌드 통과)
+   - 리뷰 대상 브랜치가 체크아웃되어 있는지 확인
+   - `codex --version`으로 Codex CLI 가용성 확인
+   - Codex 미설치/미인증 시 리더에게 보고하고 Phase 4-5 건너뜀 (단, 보고서에 "Codex 리뷰 누락" 명시)
+
+2. **code-reviewer 팀원 활성화 (아직 미스폰이면 스폰):**
+   - `general-purpose` 타입, `model: "opus"`
+   - 에이전트 정의 파일(`.claude/agents/code-reviewer.md`)과 `codex-review` 스킬을 읽도록 지시
+
+3. **리뷰 요청:**
+   - 리더 → code-reviewer에게 SendMessage: PR 번호 또는 브랜치명, 리뷰 범위 힌트
+   - code-reviewer는 `codex-review` 스킬의 워크플로우에 따라 `codex review --base main` 실행
+   - 결과를 `_workspace/review_report_{식별자}.md`에 저장
+
+4. **리뷰 결과 처리:**
+   - **must-fix ≥ 1건:** code-reviewer가 해당 구현 에이전트에게 직접 수정 요청 (SendMessage). 수정 후 `review_report_{식별자}_rev2.md`로 재리뷰
+   - **must-fix = 0건, should-fix/nit만 있음:** PR 생성 진행. should-fix/nit 항목은 PR body에 "리뷰 참고사항" 섹션으로 기록
+   - **머지 권고 NO-GO:** 리더가 사용자에게 보고하고 결정 대기
+
+5. **PR 생성:**
+   - 리뷰 보고서 요약(심각도별 건수 + 머지 권고)을 PR body에 포함
+   - `gh pr create`로 PR 생성
+
 ### Phase 5: 정리
 
 1. 모든 팀원에게 종료 요청 (SendMessage)
@@ -124,7 +158,11 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
                                     │
                             _workspace/qa_report.md
                                     │
-                              [리더: 결과 보고]
+                          [code-reviewer] ← PR 단위 호출
+                                    │
+                        _workspace/review_report_*.md
+                                    │
+                              [리더: 결과 보고 + PR 생성]
 ```
 
 ## 에러 핸들링
@@ -134,6 +172,9 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
 | 팀원 1명 실패/중지 | SendMessage로 상태 확인 → 재작업 지시 |
 | Go/npm 빌드 실패 | 에러 메시지를 담당 에이전트에게 전달, 수정 요청 |
 | API shape 불일치 | qa-engineer가 감지 → 담당 에이전트에게 수정 요청 |
+| Codex CLI 미설치/미인증 | Phase 4-5 건너뛰고 리더에게 보고, PR body에 "Codex 리뷰 누락" 명시 |
+| Codex 응답 타임아웃 | 1회 재시도 → 재실패 시 code-reviewer가 수동 리뷰 수행, 보고서에 표기 |
+| Codex 리뷰 must-fix 발견 | 해당 구현 에이전트에게 수정 요청, 수정 후 rev2 재리뷰 |
 | 팀원 과반 실패 | 사용자에게 알리고 진행 여부 확인 |
 | 타임아웃 | 현재까지 생성된 코드 보존, 미완료 Task 보고 |
 
@@ -143,15 +184,19 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
 1. 사용자가 "풀스택 구현해줘" 요청
 2. Phase 0에서 초기 실행 판정
 3. Phase 1에서 설계 스펙/계획 확인
-4. Phase 2에서 4명 팀 구성 + Task 할당
+4. Phase 2에서 5명 팀 구성 + Task 할당 (code-reviewer는 PR 단계에 활성화)
 5. Phase 3에서 병렬 구현 (backend/frontend/infra 동시, qa 점진적)
 6. Phase 4에서 QA 검증, 불일치 수정
-7. Phase 5에서 팀 정리, 결과 보고
-8. 예상 결과: `backend/`, `frontend/`, `docker-compose.yml`, `.github/workflows/ci.yml` 생성
+7. Phase 4-5에서 PR 직전 Codex 리뷰 → must-fix 없음 확인 → PR 생성
+8. Phase 5에서 팀 정리, 결과 보고
+9. 예상 결과: `backend/`, `frontend/`, `docker-compose.yml`, `.github/workflows/ci.yml` 생성 + 모든 PR에 리뷰 보고서 첨부
 
 ### 에러 흐름
 1. Phase 3에서 backend-dev가 Go 빌드 에러 발생
 2. 리더가 에러 감지, backend-dev에게 수정 요청
 3. backend-dev가 수정 후 빌드 성공
 4. qa-engineer가 재검증 수행
-5. 나머지 Phase 정상 진행
+5. Phase 4-5에서 code-reviewer가 must-fix 1건 발견(예: SQL injection 가능성)
+6. code-reviewer가 backend-dev에게 직접 수정 요청
+7. 수정 후 rev2 재리뷰 → must-fix 0건 확인
+8. PR 생성 → 머지
