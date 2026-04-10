@@ -1,74 +1,80 @@
 # Harness Fullstack Test
 
-React + Vite 프론트엔드와 Go(Gin) 백엔드, PostgreSQL을 조합한 풀스택 보일러플레이트 프로젝트.
+**Go + React + PostgreSQL fullstack boilerplate** driven by a Claude Code agent-team harness with Codex-based PR review.
 
-MVP 우선 접근으로 **User CRUD + JWT 인증**을 구현하고, Docker Compose와 GitHub Actions CI를 포함한다. 모든 코드에는 한국어 학습용 상세 주석이 포함되어 있어, 파일별로 시스템 전체 흐름과 로직을 파악할 수 있다.
+[English](README.md) | [한국어](README_KO.md) | [日本語](README_JA.md)
 
-## 기술 스택
+A fullstack boilerplate combining a React + Vite frontend, a Go (Gin) backend, and PostgreSQL. Built with an MVP-first approach implementing **User CRUD + JWT authentication**, Docker Compose, and GitHub Actions CI. Every file ships with detailed Korean learning comments so the entire system flow and logic is readable file by file.
 
-| 영역 | 기술 |
-|------|------|
+## Tech Stack
+
+| Area | Technology |
+|------|------------|
 | Backend | Go 1.22+ / Gin / lib/pq / golang-jwt / bcrypt |
 | Frontend | React 18 / Vite / TypeScript / React Router v6 / CSS Modules |
 | Database | PostgreSQL 16 |
 | Infra | Docker Compose / GitHub Actions CI |
+| AI Harness | Claude Code agent team + Codex CLI (PR review) |
 
-## 프로젝트 구조
+## Project Structure
 
 ```
 harness-fullstack-test/
 ├── frontend/                 ← React + Vite + TypeScript
 │   ├── src/
-│   │   ├── components/       ← 재사용 UI 컴포넌트 (ProtectedRoute)
-│   │   ├── pages/            ← 페이지 (Login, Register, UserList, UserDetail)
-│   │   ├── hooks/            ← 커스텀 훅
-│   │   ├── api/              ← API 클라이언트 (fetch wrapper)
+│   │   ├── components/       ← Reusable UI (ProtectedRoute)
+│   │   ├── pages/            ← Pages (Login, Register, UserList, UserDetail)
+│   │   ├── hooks/            ← Custom hooks
+│   │   ├── api/              ← API client (fetch wrapper)
 │   │   ├── context/          ← React Context (AuthContext)
-│   │   ├── App.tsx           ← 라우팅 설정
-│   │   └── main.tsx          ← 엔트리포인트
+│   │   ├── App.tsx           ← Router setup
+│   │   └── main.tsx          ← Entry point
 │   ├── Dockerfile
 │   └── package.json
 │
 ├── backend/                  ← Go + Gin
 │   ├── cmd/server/
-│   │   └── main.go           ← 엔트리포인트
+│   │   └── main.go           ← Entry point
 │   ├── internal/
-│   │   ├── handler/          ← HTTP 핸들러 (auth, user)
-│   │   ├── model/            ← 데이터 모델 (User 구조체)
-│   │   ├── repository/       ← DB 접근 레이어 (CRUD 쿼리)
-│   │   ├── service/          ← 비즈니스 로직 (인증, 유저 관리)
-│   │   ├── middleware/       ← JWT 인증 미들웨어
-│   │   └── config/           ← 환경변수 로드
-│   ├── migrations/           ← SQL 마이그레이션 파일
+│   │   ├── handler/          ← HTTP handlers (auth, user)
+│   │   ├── model/            ← Data models (User struct)
+│   │   ├── repository/       ← DB access layer (CRUD queries)
+│   │   ├── service/          ← Business logic (auth, user management)
+│   │   ├── middleware/       ← JWT auth middleware
+│   │   └── config/           ← Environment variable loader
+│   ├── migrations/           ← SQL migrations
 │   ├── Dockerfile
 │   └── go.mod
 │
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
-└── CLAUDE.md
+├── .claude/                  ← Claude Code harness (agents + skills)
+│   ├── agents/               ← Agent definitions
+│   └── skills/               ← Skill definitions
+└── CLAUDE.md                 ← Harness context for Claude Code
 ```
 
-## API 엔드포인트
+## API Endpoints
 
-### 인증 (공개)
+### Authentication (Public)
 
-| Method | Path | 설명 |
-|--------|------|------|
-| POST | `/api/auth/register` | 회원가입 (email, password, name) |
-| POST | `/api/auth/login` | 로그인 → JWT 토큰 반환 |
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth/register` | Register (email, password, name) |
+| POST | `/api/auth/login` | Login → returns JWT token |
 
-### User CRUD (인증 필요)
+### User CRUD (Authenticated)
 
-| Method | Path | 설명 |
-|--------|------|------|
-| GET | `/api/users` | 유저 목록 조회 |
-| GET | `/api/users/:id` | 유저 상세 조회 |
-| PUT | `/api/users/:id` | 유저 정보 수정 |
-| DELETE | `/api/users/:id` | 유저 삭제 |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/users` | List users |
+| GET | `/api/users/:id` | Get user detail |
+| PUT | `/api/users/:id` | Update user |
+| DELETE | `/api/users/:id` | Delete user |
 
-## 시작하기
+## Getting Started
 
-### Docker Compose (권장)
+### Docker Compose (Recommended)
 
 ```bash
 docker compose up -d
@@ -78,77 +84,230 @@ docker compose up -d
 - Backend: http://localhost:8080
 - PostgreSQL: localhost:5432
 
-### 개별 실행
+### Run Individually
 
 ```bash
-# 백엔드
+# Backend
 cd backend
 go mod tidy
 go build ./cmd/server
 ./server
 
-# 프론트엔드
+# Frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-## 아키텍처
+## Application Architecture
 
-### 백엔드 레이어
-
-```
-HTTP 요청 → Router → Middleware(JWT 검증) → Handler → Service → Repository → DB
-```
-
-| 레이어 | 역할 |
-|--------|------|
-| Handler | HTTP 요청 파싱, 응답 생성 |
-| Service | 비즈니스 로직 (비밀번호 해싱, 토큰 생성, 유효성 검사) |
-| Repository | SQL 쿼리 실행 (database/sql + lib/pq) |
-| Middleware | JWT 토큰 검증, 인증 정보를 Context에 저장 |
-
-### 프론트엔드 인증 흐름
+### Backend Layers
 
 ```
-로그인 성공 → JWT를 localStorage 저장 → AuthContext 업데이트
-  → API 호출 시 Authorization 헤더 자동 첨부
-  → 토큰 만료/부재 시 /login 리다이렉트
+HTTP request → Router → Middleware (JWT) → Handler → Service → Repository → DB
 ```
 
-## Claude Code 하네스
+| Layer | Responsibility |
+|-------|----------------|
+| Handler | Parse HTTP requests, build responses |
+| Service | Business logic (password hashing, token generation, validation) |
+| Repository | SQL query execution (database/sql + lib/pq) |
+| Middleware | JWT verification, store auth info in Context |
 
-이 프로젝트는 [Claude Code](https://claude.com/claude-code) + [Harness 플러그인](https://github.com/anthropics/harness-marketplace)으로 에이전트 팀을 구성하여 병렬 개발할 수 있도록 설계되어 있다.
-
-### 에이전트 팀
-
-| 에이전트 | 역할 |
-|---------|------|
-| `backend-dev` | Go(Gin) 백엔드 전체 구현 |
-| `frontend-dev` | React 프론트엔드 전체 구현 |
-| `infra-dev` | Docker Compose, CI, 환경설정 |
-| `qa-engineer` | 프론트↔백 정합성 검증, 빌드 확인 |
-
-### 실행 방법
-
-Claude Code에서 다음과 같이 요청하면 오케스트레이터가 에이전트 팀을 조율하여 전체 스택을 구축한다:
+### Frontend Auth Flow
 
 ```
-풀스택 구현해줘
+Login success → Store JWT in localStorage → Update AuthContext
+  → Attach Authorization header on API calls
+  → Redirect to /login on token expiry/absence
 ```
 
-부분 수정도 가능:
+## Harness Architecture — Claude + Codex Dual-Model Design
+
+This project is unusual in that it runs **two independent AI model providers** during development:
+- **Claude (Anthropic)** powers the orchestrator and every agent in the team.
+- **Codex (OpenAI, via ChatGPT Plus OAuth)** is invoked by `code-reviewer` purely as a second-opinion witness at PR time.
+
+Understanding the boundary prevents confusion about billing, auth, and which model "thinks" about what.
+
+### Full System Diagram
+
+> **Note:** The values shown in the Codex CLI box below (version, install path, `auth_mode`, `chatgpt_plan_type`) reflect **one local installation snapshot**. Your setup may use API key mode (`OPENAI_API_KEY` instead of ChatGPT OAuth), a different version, or a different install path. The conceptual boundaries — Codex as a separate process, isolated authentication, and a separate billing path from Claude — hold regardless of mode.
 
 ```
-백엔드 API만 수정해줘
-프론트엔드 로그인 페이지 보완해줘
+┌────────────────────────────────────────────────────────────────────────┐
+│                            USER (terminal)                             │
+│           e.g. "implement the fullstack app and open PRs"              │
+└────────────────────────┬───────────────────────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│  Claude Code CLI  (single claude binary · main process)                │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │        Leader (main) — the Claude you are talking to             │  │
+│  │   · model: claude-opus-4-6 (1M context)                          │  │
+│  │   · Calls Anthropic API  ←── your Claude subscription / API key  │  │
+│  │   · Loads harness skill: fullstack-orchestrator                  │  │
+│  │   · Team coordination (TeamCreate / TaskCreate / SendMessage)    │  │
+│  └────────────────┬─────────────────────────────────────────────────┘  │
+│                   │ spawns agent team (same process, isolated context) │
+│                   ▼                                                    │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  Team (fullstack-team) — all use Claude Opus via Anthropic API   │  │
+│  │                                                                  │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │  │
+│  │  │ backend-dev  │  │ frontend-dev │  │ infra-dev    │            │  │
+│  │  │  (opus)      │  │  (opus)      │  │  (opus)      │            │  │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘            │  │
+│  │                                                                  │  │
+│  │  ┌──────────────┐  ┌──────────────────────────────┐              │  │
+│  │  │ qa-engineer  │  │ code-reviewer (new)          │              │  │
+│  │  │  (opus)      │  │  (opus)                      │              │  │
+│  │  │              │  │  · thinks in Claude          │              │  │
+│  │  │ Incremental  │  │  · calls Bash("codex ...")   │              │  │
+│  │  │ contract     │  │  ──────────┐                 │              │  │
+│  │  │ verification │  │            │                 │              │  │
+│  │  └──────────────┘  └────────────┼─────────────────┘              │  │
+│  └───────────────────────────────┼─┼────────────────────────────────┘  │
+└──────────────────────────────────┼─┼───────────────────────────────────┘
+                                   │ │ process boundary (fork/exec)
+                                   │ │ Bash tool runs external CLI
+                                   ▼ ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│  Codex CLI  (separate process · e.g. /usr/local/bin/codex)             │
+│                                                                        │
+│  Example local install snapshot — yours may differ:                    │
+│  · Version: codex-cli 0.118.0                                          │
+│  · Credentials: ~/.codex/auth.json                                     │
+│  · auth_mode: chatgpt    (OAuth login; API key mode also supported)    │
+│  · chatgpt_plan_type: plus                                             │
+│  · Default model: gpt-5-codex family                                   │
+│                                                                        │
+│  `codex review --base main`  → HTTPS request to OpenAI backend         │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                     │ HTTPS (OAuth bearer token)
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│  OpenAI / ChatGPT backend                                              │
+│                                                                        │
+│  · In ChatGPT OAuth mode: authenticated as a ChatGPT user; billed      │
+│    against the subscription quota (no separate API charges)            │
+│  · In API key mode: authenticated via OPENAI_API_KEY; billed to the    │
+│    API account per token usage                                         │
+│  · Runs gpt-5-codex family → returns review text                       │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 설계 문서
+### Two Independent Model Paths
 
-- **설계 스펙**: [`docs/superpowers/specs/2026-04-08-fullstack-harness-design.md`](docs/superpowers/specs/2026-04-08-fullstack-harness-design.md)
-- **구현 계획**: [`docs/superpowers/plans/2026-04-09-fullstack-harness-plan.md`](docs/superpowers/plans/2026-04-09-fullstack-harness-plan.md)
+```
+[1] Claude path (runs constantly)
+    Leader + every agent (backend-dev, frontend-dev, infra-dev,
+                          qa-engineer, code-reviewer's own reasoning)
+         │
+         ▼
+    Anthropic API  ← your Anthropic account / subscription
+         │
+         ▼
+    claude-opus-4-6
 
-## 라이선스
+[2] OpenAI / Codex path (only when code-reviewer runs at PR time)
+    code-reviewer invokes Bash → `codex review --base main ...`
+         │
+         ▼
+    Codex CLI (separate process)
+         │
+         ▼  (OAuth bearer token, chatgpt mode)
+    OpenAI backend
+         │
+         ▼
+    gpt-5-codex   ← billed against ChatGPT Plus quota
+```
+
+The two paths are **completely isolated**. Same word ("agent") but entirely separate accounts, models, and billing systems.
+
+### Key Points (Common Misconceptions)
+
+**1) "code-reviewer agent = Codex model" — wrong.**
+`code-reviewer` is still a Claude-Opus agent. Its job is:
+1. Use Claude Opus to figure out the change scope
+2. Shell out to `codex review` via the Bash tool
+3. Take the Codex response and filter it through project context (again with Claude Opus)
+4. Produce a structured review report (Claude Opus)
+
+In other words, `code-reviewer` is a **Claude agent that hires Codex as an expert witness**.
+
+**2) Why bother with a second opinion?**
+If every reviewer is the same model, they share the same blind spots. Using a model from **a different vendor trained on different data with different techniques** (GPT-5-codex) catches bias the in-team Claude reviewers miss.
+
+**3) Billing is never mixed.**
+| Path | Billed to |
+|------|-----------|
+| Leader + all agent reasoning | Anthropic (your Claude subscription) |
+| `codex review` invocations (ChatGPT OAuth mode) | ChatGPT subscription quota |
+| `codex review` invocations (API key mode) | OpenAI API account (per-token) |
+
+The Claude path and the Codex path are always billed separately — the specific Codex billing destination depends on which auth mode Codex CLI is configured in. If the Codex call fails for any reason (quota exhausted, unauthenticated, offline), the orchestrator's error handler skips Phase 4-5, writes a minimal stub review report, and opens the PR with a "Codex review skipped" note. The rest of the workflow continues untouched.
+
+**4) Credentials are fully isolated.**
+```
+~/.codex/auth.json    ← Codex CLI only
+                        (holds either ChatGPT OAuth token
+                         or OPENAI_API_KEY — both modes store here)
+                        No link to Claude Code.
+
+Claude Code auth      ← managed by Anthropic, entirely separate.
+                        No link to `codex login`.
+```
+Logging out of one does not affect the other.
+
+## Claude Code Harness
+
+This project is wired up for [Claude Code](https://claude.com/claude-code) + the [Harness plugin](https://github.com/anthropics/harness-marketplace) so you can run parallel development with an agent team.
+
+### Agent Team
+
+| Agent | Role | Execution |
+|-------|------|-----------|
+| `backend-dev` | Go (Gin) backend (models, services, handlers, middleware, DB) | Parallel |
+| `frontend-dev` | React frontend (routing, auth, pages, components) | Parallel |
+| `infra-dev` | Docker Compose, GitHub Actions CI, configuration | Parallel |
+| `qa-engineer` | Front ↔ back contract verification, builds, integration sanity | Incremental (per module) |
+| `code-reviewer` | Codex-based second-opinion code review | Per-PR (just before `gh pr create`) |
+
+### Skills
+
+| Skill | Purpose | Used by |
+|-------|---------|---------|
+| `fullstack-orchestrator` | Team coordination, workflow management | Leader |
+| `backend-build` | Go backend implementation guide | `backend-dev` |
+| `frontend-build` | React frontend implementation guide | `frontend-dev` |
+| `infra-setup` | Docker, CI, config guide | `infra-dev` |
+| `qa-verify` | Contract verification methodology | `qa-engineer` |
+| `codex-review` | Codex CLI invocation + review report format | `code-reviewer` |
+
+### How to Run
+
+In Claude Code, ask the orchestrator to drive the team:
+
+```
+implement the fullstack app
+```
+
+Partial updates work too:
+
+```
+update only the backend API
+patch the frontend login page
+review this PR with codex
+```
+
+## Design Documents
+
+- **Design spec:** [`docs/superpowers/specs/2026-04-08-fullstack-harness-design.md`](docs/superpowers/specs/2026-04-08-fullstack-harness-design.md)
+- **Implementation plan:** [`docs/superpowers/plans/2026-04-09-fullstack-harness-plan.md`](docs/superpowers/plans/2026-04-09-fullstack-harness-plan.md)
+
+## License
 
 MIT
