@@ -72,6 +72,8 @@ docker compose config
 - 모든 에이전트는 `model: "opus"` 사용
 - 중간 산출물: `_workspace/` 디렉토리 (QA 보고서: `qa_report.md`, 리뷰 보고서: `review_report_*.md`)
 
+**아키텍처 다이어그램:** Claude Code CLI ↔ 에이전트 팀 ↔ Codex CLI ↔ ChatGPT Plus 의 전체 호출 구조/빌링 경계는 `README.md`의 "Harness Architecture — Claude + Codex Dual-Model Design" 섹션(또는 README_KO.md/README_JA.md) 참조. 사용자에게 아키텍처 질문을 받으면 해당 README 섹션을 먼저 읽고 답한다.
+
 **디렉토리 구조:**
 ```
 .claude/
@@ -101,3 +103,4 @@ docker compose config
 |------|----------|------|------|
 | 2026-04-09 | 초기 구성 | 전체 | 풀스택 하네스 신규 구축 |
 | 2026-04-10 | code-reviewer 에이전트 + codex-review 스킬 추가 | agents/code-reviewer.md, skills/codex-review/, fullstack-orchestrator | PR 생성 직전 Codex 기반 독립 second opinion 리뷰 도입. qa-engineer(경계면 계약 검증)와 역할 분리 — 전문성/병렬성/컨텍스트/재사용성 4축 모두 분리가 유리 |
+| 2026-04-10 | README 3개 언어판 + 하네스 아키텍처 다이어그램 문서화 | README.md, README_KO.md, README_JA.md, CLAUDE.md | Claude + Codex 이중 모델 구조를 사람이 이해하도록 영/한/일 3개 언어판 README 구성. CLAUDE.md에는 포인터만 남겨 컨텍스트 lean 유지 |
