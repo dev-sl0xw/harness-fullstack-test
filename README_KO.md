@@ -132,6 +132,8 @@ HTTP 요청 → Router → Middleware(JWT 검증) → Handler → Service → Re
 
 ### 전체 시스템 다이어그램
 
+> **참고:** 아래 Codex CLI 박스의 값(버전, 설치 경로, `auth_mode`, `chatgpt_plan_type`)은 **특정 로컬 설치의 한 스냅샷**이다. 실제 환경에서는 API key 모드(`OPENAI_API_KEY`), 다른 버전, 다른 설치 경로를 쓸 수 있다. 개념적 경계 — Codex가 별도 프로세스라는 것, 인증이 격리된다는 것, Claude 경로와 빌링이 분리된다는 것 — 은 모드와 무관하게 유지된다.
+
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                            USER (터미널)                                 │
@@ -172,11 +174,12 @@ HTTP 요청 → Router → Middleware(JWT 검증) → Handler → Service → Re
                                    │ │ Bash 툴로 외부 CLI 실행
                                    ▼ ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│  Codex CLI  (별도 프로세스 · /usr/local/bin/codex)                       │
+│  Codex CLI  (별도 프로세스 · 예: /usr/local/bin/codex)                   │
 │                                                                        │
+│  로컬 설치 예시 스냅샷 — 환경마다 다를 수 있음:                             │
 │  · 버전: codex-cli 0.118.0                                              │
 │  · 인증 파일: ~/.codex/auth.json                                         │
-│  · auth_mode: chatgpt    (OAuth, API key 아님)                         │
+│  · auth_mode: chatgpt    (OAuth 로그인; API key 모드도 지원)              │
 │  · chatgpt_plan_type: plus                                             │
 │  · 기본 모델: gpt-5-codex 계열                                           │
 │                                                                        │
@@ -187,8 +190,9 @@ HTTP 요청 → Router → Middleware(JWT 검증) → Handler → Service → Re
 ┌────────────────────────────────────────────────────────────────────────┐
 │  OpenAI / ChatGPT 백엔드                                                │
 │                                                                        │
-│  · 이 요청은 "ChatGPT Plus 사용자" 자격으로 인증됨                          │
-│  · 구독 쿼터에서 차감 (별도 API 과금 없음)                                 │
+│  · ChatGPT OAuth 모드: ChatGPT 사용자 자격으로 인증, 구독 쿼터에서 차감   │
+│    (별도 API 과금 없음)                                                  │
+│  · API key 모드: OPENAI_API_KEY로 인증, API 계정에 토큰 사용량 과금        │
 │  · gpt-5-codex 계열 실행 → 리뷰 응답 반환                                 │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -239,17 +243,20 @@ HTTP 요청 → Router → Middleware(JWT 검증) → Handler → Service → Re
 | 경로 | 과금 대상 |
 |------|----------|
 | 리더 + 모든 에이전트 사고 | Anthropic (Claude 구독) |
-| `codex review` 호출 | ChatGPT Plus 쿼터 |
+| `codex review` 호출 (ChatGPT OAuth 모드) | ChatGPT 구독 쿼터 |
+| `codex review` 호출 (API key 모드) | OpenAI API 계정 (토큰 사용량 과금) |
 
-ChatGPT Plus 쿼터가 소진되면 Codex CLI가 에러를 반환하고, 오케스트레이터의 에러 핸들러(`Codex CLI 미인증/타임아웃` 조항)가 Phase 4-5를 건너뛰고 "Codex 리뷰 누락"으로 PR을 생성한다. 나머지 워크플로우는 그대로 진행된다.
+Claude 경로와 Codex 경로는 **항상 분리 과금**된다. Codex 쪽의 구체적 과금 대상은 Codex CLI가 어떤 auth 모드로 설정되어 있느냐에 따라 달라진다. Codex 호출이 어떤 이유로든 실패하면(쿼터 소진, 미인증, 오프라인 등) 오케스트레이터의 에러 핸들러가 Phase 4-5를 건너뛰고, 최소 stub 리뷰 보고서를 작성한 뒤 "Codex 리뷰 누락" 메모와 함께 PR을 생성한다. 나머지 워크플로우는 그대로 진행된다.
 
 **4) 인증이 완전히 격리된다.**
 ```
-~/.codex/auth.json    ← Codex CLI 전용 (ChatGPT OAuth 토큰)
-                        (Claude Code와 전혀 무관)
+~/.codex/auth.json    ← Codex CLI 전용
+                        (ChatGPT OAuth 토큰 또는 OPENAI_API_KEY 저장
+                         — 두 모드 모두 이 파일을 사용)
+                        Claude Code와 전혀 무관.
 
 Claude Code 인증      ← Anthropic 측에서 별도 관리
-                        (codex login과 전혀 무관)
+                        codex login과 전혀 무관.
 ```
 한쪽 로그아웃이 다른 쪽에 영향을 주지 않는다.
 

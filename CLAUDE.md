@@ -74,7 +74,7 @@ docker compose config
 
 **아키텍처 다이어그램:** Claude Code CLI ↔ 에이전트 팀 ↔ Codex CLI ↔ ChatGPT Plus 의 전체 호출 구조/빌링 경계는 `README.md`의 "Harness Architecture — Claude + Codex Dual-Model Design" 섹션(또는 README_KO.md/README_JA.md) 참조. 사용자에게 아키텍처 질문을 받으면 해당 README 섹션을 먼저 읽고 답한다.
 
-**디렉토리 구조:**
+**디렉토리 구조** (주요 구조 발췌 — `.claude/settings.json`, `.claude/settings.local.json` 등 설정 파일 생략):
 ```
 .claude/
 ├── agents/

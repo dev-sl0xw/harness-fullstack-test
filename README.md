@@ -132,6 +132,8 @@ Understanding the boundary prevents confusion about billing, auth, and which mod
 
 ### Full System Diagram
 
+> **Note:** The values shown in the Codex CLI box below (version, install path, `auth_mode`, `chatgpt_plan_type`) reflect **one local installation snapshot**. Your setup may use API key mode (`OPENAI_API_KEY` instead of ChatGPT OAuth), a different version, or a different install path. The conceptual boundaries — Codex as a separate process, isolated authentication, and a separate billing path from Claude — hold regardless of mode.
+
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                            USER (terminal)                             │
@@ -173,11 +175,12 @@ Understanding the boundary prevents confusion about billing, auth, and which mod
                                    │ │ Bash tool runs external CLI
                                    ▼ ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│  Codex CLI  (separate process · /usr/local/bin/codex)                  │
+│  Codex CLI  (separate process · e.g. /usr/local/bin/codex)             │
 │                                                                        │
+│  Example local install snapshot — yours may differ:                    │
 │  · Version: codex-cli 0.118.0                                          │
 │  · Credentials: ~/.codex/auth.json                                     │
-│  · auth_mode: chatgpt    (OAuth, not API key)                          │
+│  · auth_mode: chatgpt    (OAuth login; API key mode also supported)    │
 │  · chatgpt_plan_type: plus                                             │
 │  · Default model: gpt-5-codex family                                   │
 │                                                                        │
@@ -188,8 +191,10 @@ Understanding the boundary prevents confusion about billing, auth, and which mod
 ┌────────────────────────────────────────────────────────────────────────┐
 │  OpenAI / ChatGPT backend                                              │
 │                                                                        │
-│  · Request is authenticated as a ChatGPT Plus user                     │
-│  · Billed against the subscription quota (no separate API charges)     │
+│  · In ChatGPT OAuth mode: authenticated as a ChatGPT user; billed      │
+│    against the subscription quota (no separate API charges)            │
+│  · In API key mode: authenticated via OPENAI_API_KEY; billed to the    │
+│    API account per token usage                                         │
 │  · Runs gpt-5-codex family → returns review text                       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -240,17 +245,20 @@ If every reviewer is the same model, they share the same blind spots. Using a mo
 | Path | Billed to |
 |------|-----------|
 | Leader + all agent reasoning | Anthropic (your Claude subscription) |
-| `codex review` invocations | ChatGPT Plus quota |
+| `codex review` invocations (ChatGPT OAuth mode) | ChatGPT subscription quota |
+| `codex review` invocations (API key mode) | OpenAI API account (per-token) |
 
-If the ChatGPT Plus quota is exhausted, Codex CLI returns an error and the orchestrator's error handler (`Codex CLI unavailable` branch) skips Phase 4-5 and opens the PR with a "Codex review skipped" note. The rest of the workflow continues untouched.
+The Claude path and the Codex path are always billed separately — the specific Codex billing destination depends on which auth mode Codex CLI is configured in. If the Codex call fails for any reason (quota exhausted, unauthenticated, offline), the orchestrator's error handler skips Phase 4-5, writes a minimal stub review report, and opens the PR with a "Codex review skipped" note. The rest of the workflow continues untouched.
 
 **4) Credentials are fully isolated.**
 ```
-~/.codex/auth.json    ← Codex CLI only (ChatGPT OAuth token)
-                        (no link to Claude Code)
+~/.codex/auth.json    ← Codex CLI only
+                        (holds either ChatGPT OAuth token
+                         or OPENAI_API_KEY — both modes store here)
+                        No link to Claude Code.
 
-Claude Code auth      ← managed by Anthropic, entirely separate
-                        (no link to `codex login`)
+Claude Code auth      ← managed by Anthropic, entirely separate.
+                        No link to `codex login`.
 ```
 Logging out of one does not affect the other.
 

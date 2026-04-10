@@ -1,6 +1,6 @@
 ---
 name: codex-review
-description: "Codex CLI를 사용하여 PR/브랜치/커밋의 변경셋에 대한 second opinion 코드 리뷰를 수행하고 구조화된 리뷰 보고서를 생성하는 스킬. PR 생성 직전 리뷰, 변경사항 검토, 코드 품질 리뷰, 로직 타당성 검토, 설계 리뷰, 엣지 케이스 확인, 보안/성능 리스크 확인, second opinion, 독립 리뷰, Codex 리뷰, 머지 전 리뷰 요청 시 이 스킬을 사용. 후속: 리뷰 재실행, 리뷰 업데이트, 이전 리뷰 기반 재검토에도 사용. 기존 경계면 계약 검증(shape/타입 교차 비교/빌드 확인)은 qa-verify 스킬의 몫이므로 이 스킬은 사용하지 않는다."
+description: "`code-reviewer` 에이전트가 호출하는 **내부 전용** 스킬. Codex CLI(`codex review`)를 실행하여 변경셋 second opinion을 받고 구조화된 리뷰 보고서를 생성하는 방법을 정의한다. 사용자 발화("PR 리뷰해줘", "머지 전 리뷰", "second opinion")로부터 **직접 트리거되면 안 되며**, 사용자 진입점은 항상 `fullstack-orchestrator`이다. 오케스트레이터가 Phase 4-5에서 `code-reviewer`를 스폰할 때 해당 에이전트가 이 스킬을 내부적으로 로드한다."
 ---
 
 # Codex Review Skill
