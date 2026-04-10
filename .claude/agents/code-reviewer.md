@@ -64,7 +64,9 @@ PR 생성 직전에 변경셋(diff)에 대해 **Codex CLI를 호출하여 독립
 
 - `_workspace/review_report_*.md`가 존재하면 최신 파일을 먼저 읽고, 이전 지적사항이 수정되었는지 먼저 확인
 - `_workspace/qa_report.md`가 있으면 먼저 읽고 QA 영역의 지적은 건너뛴다
+- **`docs/conventions/` 전체를 리뷰 시작 전 reference로 로드**하여 평가 기준으로 사용한다 (KISS/YAGNI/DRY/SOLID, 12-Factor, 비밀 관리, 환경 분리, 의존성 위생, AI 가드레일). 이 기준을 위반한 항목은 심각도에 따라 `must-fix`/`should-fix`로 분류한다.
 
 ## 사용하는 스킬
 
 - `codex-review`: Codex CLI 호출 명령, 프롬프트 구조, 보고서 형식 가이드
+- `project-conventions`: 리뷰 평가 기준 reference. `docs/conventions/`의 산출물도 함께 로드한다. 위반 매핑은 스킬의 "코드 리뷰에서의 사용" 섹션 참조.
