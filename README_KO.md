@@ -291,12 +291,12 @@ Claude Code 인증      ← Anthropic 측에서 별도 관리
 
 - **Phase 0-5 — 규칙 수립:** 신규 프로젝트일 경우 `project-architect`가 가장 먼저 실행되어 `docs/conventions/`(principles, secrets, 12-factor, dependencies, ai-guardrails)를 작성한다. 이후 구현 에이전트는 작업 시작 전 이 문서를 reference로 로드한다.
 - **Phase 2-4 — 병렬 구현:** `backend-dev`/`frontend-dev`/`infra-dev`가 병렬로 작업하고, `qa-engineer`가 모듈 완성마다 incremental하게 검증한다.
-- **Phase 4-4 — README 자동 동기화:** PR 생성 직전, 오케스트레이터가 diff를 검사하여 트리거 조건(에이전트/스킬 추가, 최상위 디렉토리 변경, 컨벤션 추가, 환경변수, 빌드 명령어, 외부 서비스, 인증 흐름 변경)에 매칭되면 `README.md`/`README_KO.md`/`README_JA.md` 세 파일을 함께 갱신한다 (한 언어만 갱신하는 drift 방지). 일반 코드 변경은 이 단계를 건너뛴다.
+- **Phase 4-4 — README 자동 동기화:** PR 생성 직전, 오케스트레이터가 diff를 검사하여 트리거 조건 — **추가/삭제뿐 아니라 기존 항목의 *의미 변경***(에이전트/스킬 추가·역할 변경, 워크플로우 단계 변경, 컨벤션 내용 변경, 가드레일 변경, 최상위 디렉토리 변경, 환경변수, 빌드 명령어, 외부 서비스, 인증 흐름 변경) — 에 매칭되면 `README.md`/`README_KO.md`/`README_JA.md` 세 파일을 함께 갱신한다 (한 언어만 갱신하는 drift 방지). 일반 코드 변경은 이 단계를 건너뛴다.
 - **Phase 4-5 — Codex 리뷰:** PR 생성 직전 `code-reviewer`가 `codex review --base main`을 실행하여 독립적인 second opinion을 받는다.
 
 ### 시스템 레벨 가드레일 (모든 에이전트에 적용)
 
-- **read 금지:** `.env`, `.env.*` (단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`
+- **read 금지:** `.env`, `.env.*` (단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **사용자 홈 쉘 초기화 파일**(`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/토큰이 환경변수 형태로 export되어 있을 수 있음), **git 이력 기반 노출 secret**(과거에 commit되었다 삭제된 secret 파일을 `git log -p`/`git show`로 복원하지 말 것)
 - **write 금지:** 위 파일 모두 + 사용자 시스템 설정 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + production config (`config/prod.yaml`)
 - **exec 금지 (사용자 명시 승인 없이):** 와일드카드 `rm -rf`, `git push -f`, `git reset --hard`, prod DB 직접 접근, `curl ... | sh`, `sudo`
 - **로깅 금지:** 환경변수 dump, `Authorization` 헤더, DB 평문 connection string

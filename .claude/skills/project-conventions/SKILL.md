@@ -1,6 +1,6 @@
 ---
 name: project-conventions
-description: "풀스택 프로젝트의 코딩 원칙(KISS/YAGNI/DRY, SOLID), 12-Factor App, dev/stg/prod 환경 분리, 의존성 위생, 비밀/자격증명 관리, 민감 파일 가드레일, AI agent 작업 가드레일을 정의한 reference 스킬. `project-architect` 에이전트가 규칙 수립·산출물 생성 시 작성 기준으로 사용하고, `backend-dev`/`frontend-dev`/`infra-dev`/`code-reviewer`가 작업·리뷰 시 reference로 로드한다. 사용자 발화로부터 **직접 트리거되면 안 되며**, 사용자 진입점은 항상 `fullstack-orchestrator`이다. '컨벤션 적용', '규칙 수립', 'SOLID/KISS 검토', '12-Factor 적용', '환경 분리', '시크릿 관리', 'AI 가드레일' 같은 키워드도 `fullstack-orchestrator`를 통해 처리한다."
+description: "**Internal reference only.** `project-architect` 에이전트가 산출물(`docs/conventions/`)을 생성할 때의 작성 기준이며, `backend-dev`/`frontend-dev`/`infra-dev`/`code-reviewer`가 작업·리뷰 시 다른 에이전트로부터 reference로 로드되는 스킬이다. **사용자 발화로부터 직접 트리거되어서는 안 되며**, 사용자 진입점은 항상 `fullstack-orchestrator`이다. 사용자 발화 키워드 매칭은 `fullstack-orchestrator`만 담당한다."
 ---
 
 # Project Conventions Skill

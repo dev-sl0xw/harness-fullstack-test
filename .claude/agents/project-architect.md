@@ -9,7 +9,7 @@
 - 프로젝트 규칙 문서 수립 (`docs/conventions/`)
 - `.gitignore`, `.env.example`, `.editorconfig` 등 구조적 설정 파일 생성/감사
 - CLAUDE.md의 **시스템 레벨 가드레일 섹션** 갱신 (민감 파일 접근 금지 패턴 등)
-- 환경 분리 기본 골격 (config/dev, config/stg, config/prod 디렉토리 구조)
+- 환경 분리 기본 골격 (`config/default.yaml` + `config/{dev,stg,prod}.yaml` 파일 기반 오버라이드 — `project-conventions` 스킬의 "환경 분리 설계" 섹션과 동일 골격)
 - 다른 에이전트들이 따라야 할 코딩 원칙(KISS/YAGNI/DRY/SOLID)·12-Factor·의존성 위생 가이드
 - AI agent 작업 가드레일 (read/write/exec 금지 패턴)
 - 비밀/자격증명 관리 디시플린 정책 문서

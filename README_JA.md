@@ -291,12 +291,12 @@ Claude Code 認証      ← Anthropic 側で別途管理
 
 - **Phase 0-5 — ルール策定:** 新規プロジェクトでは `project-architect` が最初に実行され、`docs/conventions/`(principles, secrets, 12-factor, dependencies, ai-guardrails) を作成する。実装エージェントはコードを書き始める前にこれらを reference として読み込む。
 - **Phase 2-4 — 並列ビルド:** `backend-dev`/`frontend-dev`/`infra-dev` が並列で構築し、`qa-engineer` がモジュール完成ごとに incremental に検証する。
-- **Phase 4-4 — README 自動同期:** PR 作成直前にオーケストレーターが diff を検査し、トリガー条件 (新しいエージェント/スキル、トップレベルディレクトリ変更、新しい規約、環境変数、ビルドコマンド、外部サービス、認証フロー変更) にマッチした場合、`README.md`/`README_KO.md`/`README_JA.md` の 3 ファイルを同時に更新する (1 言語のみ更新する drift を防止)。純粋なコード変更はこのフェーズをスキップする。
+- **Phase 4-4 — README 自動同期:** PR 作成直前にオーケストレーターが diff を検査し、トリガー条件 — **追加/削除だけでなく既存項目の*意味変更***(エージェント/スキル追加・役割変更、ワークフローフェーズ変更、規約内容変更、ガードレール変更、トップレベルディレクトリ変更、環境変数、ビルドコマンド、外部サービス、認証フロー変更) — にマッチした場合、`README.md`/`README_KO.md`/`README_JA.md` の 3 ファイルを同時に更新する (1 言語のみ更新する drift を防止)。純粋なコード変更はこのフェーズをスキップする。
 - **Phase 4-5 — Codex レビュー:** PR 作成直前に `code-reviewer` が `codex review --base main` を実行し、独立したセカンドオピニオンを取得する。
 
 ### システムレベルのガードレール (すべてのエージェントに適用)
 
-- **読み取り禁止:** `.env`, `.env.*` (ただし `.env.example` は許可), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`
+- **読み取り禁止:** `.env`, `.env.*` (ただし `.env.example` は許可), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **ユーザーホームのシェル初期化ファイル** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/トークンが環境変数として export されている可能性がある)、**git 履歴経由で露出した secret** (過去に commit されて削除された secret ファイルを `git log -p`/`git show` で復元しないこと)
 - **書き込み禁止:** 上記すべて + ユーザーシステム設定 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + 本番設定 (`config/prod.yaml`)
 - **実行禁止 (ユーザーの明示的な承認なし):** ワイルドカード `rm -rf`, `git push -f`, `git reset --hard`, 本番 DB への直接アクセス, `curl ... | sh`, `sudo`
 - **ロギング禁止:** 環境変数のダンプ、`Authorization` ヘッダー、平文の DB 接続文字列

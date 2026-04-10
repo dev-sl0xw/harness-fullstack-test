@@ -293,12 +293,12 @@ This project is wired up for [Claude Code](https://claude.com/claude-code) + the
 
 - **Phase 0-5 — Rule setup:** On a fresh project, `project-architect` runs first and writes `docs/conventions/` (principles, secrets, 12-factor, dependencies, ai-guardrails). Implementation agents load these as a reference before writing code.
 - **Phase 2-4 — Parallel build:** `backend-dev`, `frontend-dev`, `infra-dev` build in parallel. `qa-engineer` runs incrementally as modules land.
-- **Phase 4-4 — README auto-sync:** Just before PR creation, the orchestrator inspects the diff. If the change matches a tracked trigger (new agent/skill, top-level directory change, new convention, env var, build command, external service, auth flow), it auto-updates `README.md`, `README_KO.md`, and `README_JA.md` together (no language-only drift). Pure code changes skip this phase.
+- **Phase 4-4 — README auto-sync:** Just before PR creation, the orchestrator inspects the diff. If the change matches a tracked trigger — **including additions, deletions, and *semantic changes* to existing items** (new agent/skill, role/purpose change, workflow phase change, conventions content change, guardrail change, top-level directory change, env var, build command, external service, auth flow) — it auto-updates `README.md`, `README_KO.md`, and `README_JA.md` together (no language-only drift). Pure code changes skip this phase.
 - **Phase 4-5 — Codex review:** `code-reviewer` runs `codex review --base main` for an independent second opinion before opening the PR.
 
 ### System-level guardrails (apply to every agent)
 
-- **Read-blocked:** `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`
+- **Read-blocked:** `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **shell init files** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secrets/tokens often live there as exported env vars), and **VCS-history-exposed secrets** (do not resurrect previously-deleted secret files via `git log -p` / `git show`)
 - **Write-blocked:** all of the above, plus user system files (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) and production config (`config/prod.yaml`)
 - **Exec-blocked (without explicit user approval):** wildcard `rm -rf`, `git push -f`, `git reset --hard`, direct prod DB access, `curl ... | sh`, `sudo`
 - **Log-blocked:** environment-variable dumps, `Authorization` headers, plain-text DB connection strings
