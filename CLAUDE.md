@@ -78,7 +78,7 @@ docker compose config
 - 영구 산출물: `docs/conventions/` (프로젝트 규칙 문서)
 
 **시스템 레벨 가드레일** (모든 에이전트에 적용):
-- **read 금지 파일 패턴**: `.env`, `.env.*`(단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **사용자 홈 디렉토리 쉘 초기화 파일**(`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` 등 — 환경변수 형태로 secret/토큰이 노출될 수 있음), **git 이력 기반 노출 secret**(과거에 commit되었다 삭제된 secret 파일을 `git log -p`/`git show`로 복원하지 말 것)
+- **read 금지 파일 패턴**: `.env`, `.env.*`(단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*.json`, `service-account*.json`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **사용자 홈 디렉토리 쉘 초기화 파일**(`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` 등 — 환경변수 형태로 secret/토큰이 노출될 수 있음), **git 이력 기반 노출 secret**(과거에 commit되었다 삭제된 secret 파일을 `git log -p`/`git show`로 복원하지 말 것). 위 정책은 사용자 승인으로도 해제되지 않는다 — 필요 시 사용자가 직접 cat/편집기로 확인 (상세: `docs/conventions/ai-guardrails.md` "왜 승인 카테고리를 두지 않는가")
 - **write 금지**: 위 파일 모두 + 사용자 시스템 설정 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + production config (`config/prod.yaml`)
 - **exec 금지** (사용자 명시 승인 없이): `rm -rf` 와일드카드, `git push -f`, `git reset --hard`, prod DB 직접 접근, `curl ... | sh`, `sudo`
 - **로깅 금지**: 환경변수 dump, Authorization 헤더, DB 평문 connection string

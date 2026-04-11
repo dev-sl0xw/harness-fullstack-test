@@ -313,7 +313,7 @@ This project is wired up for [Claude Code](https://claude.com/claude-code) + the
 
 ### System-level guardrails (apply to every agent)
 
-- **Read-blocked:** `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **shell init files** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secrets/tokens often live there as exported env vars), and **VCS-history-exposed secrets** (do not resurrect previously-deleted secret files via `git log -p` / `git show`)
+- **Read-blocked:** `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*.json`, `service-account*.json`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **shell init files** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secrets/tokens often live there as exported env vars), and **VCS-history-exposed secrets** (do not resurrect previously-deleted secret files via `git log -p` / `git show`). This policy is not lifted by user approval — if you really need the value, open the file yourself (cat/editor) instead of routing through the AI agent.
 - **Write-blocked:** all of the above, plus user system files (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) and production config (`config/prod.yaml`)
 - **Exec-blocked (without explicit user approval):** wildcard `rm -rf`, `git push -f`, `git reset --hard`, direct prod DB access, `curl ... | sh`, `sudo`
 - **Log-blocked:** environment-variable dumps, `Authorization` headers, plain-text DB connection strings

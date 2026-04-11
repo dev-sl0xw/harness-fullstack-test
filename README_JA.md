@@ -311,7 +311,7 @@ Claude Code 認証      ← Anthropic 側で別途管理
 
 ### システムレベルのガードレール (すべてのエージェントに適用)
 
-- **読み取り禁止:** `.env`, `.env.*` (ただし `.env.example` は許可), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **ユーザーホームのシェル初期化ファイル** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/トークンが環境変数として export されている可能性がある)、**git 履歴経由で露出した secret** (過去に commit されて削除された secret ファイルを `git log -p`/`git show` で復元しないこと)
+- **読み取り禁止:** `.env`, `.env.*` (ただし `.env.example` は許可), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*.json`, `service-account*.json`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **ユーザーホームのシェル初期化ファイル** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/トークンが環境変数として export されている可能性がある)、**git 履歴経由で露出した secret** (過去に commit されて削除された secret ファイルを `git log -p`/`git show` で復元しないこと)。このポリシーはユーザー承認でも解除されない — 値が本当に必要なら、AI エージェントの read を経由せずユーザーが直接 cat/エディタで開くこと。
 - **書き込み禁止:** 上記すべて + ユーザーシステム設定 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + 本番設定 (`config/prod.yaml`)
 - **実行禁止 (ユーザーの明示的な承認なし):** ワイルドカード `rm -rf`, `git push -f`, `git reset --hard`, 本番 DB への直接アクセス, `curl ... | sh`, `sudo`
 - **ロギング禁止:** 環境変数のダンプ、`Authorization` ヘッダー、平文の DB 接続文字列

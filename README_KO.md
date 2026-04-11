@@ -311,7 +311,7 @@ Claude Code 인증      ← Anthropic 측에서 별도 관리
 
 ### 시스템 레벨 가드레일 (모든 에이전트에 적용)
 
-- **read 금지:** `.env`, `.env.*` (단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **사용자 홈 쉘 초기화 파일**(`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/토큰이 환경변수 형태로 export되어 있을 수 있음), **git 이력 기반 노출 secret**(과거에 commit되었다 삭제된 secret 파일을 `git log -p`/`git show`로 복원하지 말 것)
+- **read 금지:** `.env`, `.env.*` (단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*.json`, `service-account*.json`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **사용자 홈 쉘 초기화 파일**(`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/토큰이 환경변수 형태로 export되어 있을 수 있음), **git 이력 기반 노출 secret**(과거에 commit되었다 삭제된 secret 파일을 `git log -p`/`git show`로 복원하지 말 것). 이 정책은 사용자 승인으로도 해제되지 않는다 — 정말 값이 필요하면 사용자가 직접 cat/편집기로 보는 것이 옳다 (AI 에이전트의 read를 우회).
 - **write 금지:** 위 파일 모두 + 사용자 시스템 설정 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + production config (`config/prod.yaml`)
 - **exec 금지 (사용자 명시 승인 없이):** 와일드카드 `rm -rf`, `git push -f`, `git reset --hard`, prod DB 직접 접근, `curl ... | sh`, `sudo`
 - **로깅 금지:** 환경변수 dump, `Authorization` 헤더, DB 평문 connection string
