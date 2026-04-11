@@ -46,8 +46,12 @@ harness-fullstack-test/
 │   ├── Dockerfile
 │   └── go.mod
 │
+├── docs/
+│   └── conventions/          ← Project rules (principles, secrets, 12-factor,
+│                                dependencies, ai-guardrails) — by `project-architect`
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
+├── .env.example              ← Env var template (copy to .env)
 ├── .claude/                  ← Claude Code harness (agents + skills)
 │   ├── agents/               ← Agent definitions
 │   └── skills/               ← Skill definitions
@@ -74,7 +78,18 @@ harness-fullstack-test/
 
 ## Getting Started
 
-### Docker Compose (Recommended)
+### 1. Environment variables
+
+Copy the template and fill in real values:
+
+```bash
+cp .env.example .env
+# then edit .env with your DB credentials, JWT secret, etc.
+```
+
+The full key list and rationale live in [`docs/conventions/secrets.md`](docs/conventions/secrets.md). For Docker Compose the dev defaults baked into `docker-compose.yml` are sufficient — `.env` is mainly needed when running services individually outside Docker, or when you want to override the defaults.
+
+### 2. Docker Compose (Recommended)
 
 ```bash
 docker compose up -d
@@ -84,7 +99,7 @@ docker compose up -d
 - Backend: http://localhost:8080
 - PostgreSQL: localhost:5432
 
-### Run Individually
+### 3. Run Individually
 
 ```bash
 # Backend

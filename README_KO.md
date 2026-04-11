@@ -46,8 +46,12 @@ harness-fullstack-test/
 │   ├── Dockerfile
 │   └── go.mod
 │
+├── docs/
+│   └── conventions/          ← 프로젝트 규칙 (principles, secrets, 12-factor,
+│                                dependencies, ai-guardrails) — `project-architect` 산출
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
+├── .env.example              ← 환경변수 템플릿 (.env로 복사)
 ├── .claude/                  ← Claude Code 하네스 (에이전트 + 스킬)
 │   ├── agents/               ← 에이전트 정의
 │   └── skills/               ← 스킬 정의
@@ -74,7 +78,18 @@ harness-fullstack-test/
 
 ## 시작하기
 
-### Docker Compose (권장)
+### 1. 환경변수
+
+템플릿을 복사한 뒤 실제 값을 채운다:
+
+```bash
+cp .env.example .env
+# 그 다음 .env를 열어 DB 자격증명, JWT 비밀키 등을 입력
+```
+
+전체 키 목록과 작성 근거는 [`docs/conventions/secrets.md`](docs/conventions/secrets.md)에 있다. Docker Compose로 실행하는 경우 `docker-compose.yml`에 포함된 dev 기본값으로 충분하므로 `.env` 없이도 동작한다 — `.env`는 Docker 외부에서 개별 실행하거나 기본값을 오버라이드하고 싶을 때 주로 필요하다.
+
+### 2. Docker Compose (권장)
 
 ```bash
 docker compose up -d
@@ -84,7 +99,7 @@ docker compose up -d
 - Backend: http://localhost:8080
 - PostgreSQL: localhost:5432
 
-### 개별 실행
+### 3. 개별 실행
 
 ```bash
 # 백엔드

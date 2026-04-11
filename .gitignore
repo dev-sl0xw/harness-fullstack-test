@@ -18,6 +18,20 @@ frontend/dist/
 # Env
 .env
 .env.local
+.env.*
+!.env.example
+
+# Secrets / Credentials (docs/conventions/secrets.md 참조)
+*.pem
+*.key
+id_rsa*
+credentials.json
+*credentials*
+service-account*.json
+.aws/
+.ssh/
+*.kdbx
+*.keychain
 
 # Docker
 pgdata/
