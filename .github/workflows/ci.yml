@@ -23,6 +23,22 @@ on:
   pull_request:
     branches: [main]
 
+# Node.js 20 deprecation 대응
+# -----------------------------------------------------------------------------
+# GitHub은 2025-09-19 공지에서 Node.js 20을 사용하는 액션이 deprecated 되었으며
+# 2026-06-02부터 Node.js 24가 default로 강제 전환된다고 밝혔다 (그 이후에는
+# Node.js 20이 9월 16일에 러너에서 완전히 제거됨).
+#
+# 현재 actions/checkout@v4, actions/setup-go@v5, actions/setup-node@v4는
+# 여전히 내부적으로 Node.js 20에서 실행되어 CI annotations에 deprecation
+# warning이 매번 표시된다. 이 환경변수로 Node.js 24를 미리 강제하면 warning이
+# 사라지고, 향후 강제 전환 시점에 발생할 잠재적 호환성 이슈를 *지금* 확인할
+# 수 있다 (사후 대응이 아니라 사전 대비).
+#
+# 참고: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ---------------------------------------------------------------------------
   # 백엔드 (Go) 테스트 + 빌드
@@ -38,9 +54,15 @@ jobs:
       - uses: actions/checkout@v4
 
       # Go 환경 세팅
+      # cache-dependency-path: setup-go의 기본 cache 키는 워크플로우와 같은 디렉토리의
+      # go.sum을 찾는데, 이 프로젝트는 go.sum이 backend/ 하위에 있어 기본값으로는
+      # cache 복원이 실패하면서 warning이 발생한다 (CI 주석 annotation에 표시됨).
+      # 명시적으로 backend/go.sum 경로를 지정하면 정상적으로 module cache가 적용되고
+      # 후속 빌드가 빨라진다.
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+          cache-dependency-path: backend/go.sum
 
       # 의존성 다운로드
       - name: Download dependencies
