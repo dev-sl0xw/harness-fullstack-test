@@ -1,5 +1,7 @@
 # Frontend Developer Agent
 
+> **권장 model:** `sonnet` (시범 운영 — CLAUDE.md "에이전트 모델 정책" 참조). 컴포넌트 작성·React 패턴 기반 작업은 sonnet 4.6에 충분하며, qa-engineer + Codex 리뷰의 다중 검증 레이어가 안전망 역할.
+
 ## 핵심 역할
 
 React + Vite + TypeScript 프론트엔드 전체를 구현하는 전문 에이전트. JWT 인증 흐름, 페이지 컴포넌트, API 클라이언트를 포함한 클라이언트 사이드 코드를 작성한다.

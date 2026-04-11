@@ -86,14 +86,22 @@ Go(Gin)+React+PostgreSQL 풀스택 프로젝트의 에이전트 팀을 조율하
    TeamCreate(team_name: "fullstack-team")
    ```
 
-2. **초기 팀원 스폰 — 4명** (모든 에이전트는 `model: "opus"` 사용). 각 에이전트는 작업 시작 전 **`docs/conventions/` 전체를 reference로 읽도록** 지시한다:
-   - `backend-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(특히 principles, secrets, 12-factor, dependencies, ai-guardrails)를 reference로 로드한 뒤, 구현 계획 Task 1~7을 수행하도록 지시.
-   - `frontend-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(같은 항목)를 reference로 로드한 뒤, 구현 계획 Task 8~12를 수행하도록 지시.
-   - `infra-dev`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(특히 12-factor, secrets, ai-guardrails)를 reference로 로드한 뒤, 구현 계획 Task 2(일부), 13~14를 수행하도록 지시.
-   - `qa-engineer`: general-purpose 타입. 에이전트 정의 파일의 역할과 스킬을 읽고, 다른 에이전트의 작업 완료를 대기하다 점진적 검증을 수행하도록 지시.
+2. **초기 팀원 스폰 — 4명**. 각 에이전트는 작업 시작 전 **`docs/conventions/` 전체를 reference로 읽도록** 지시한다.
 
-   **`project-architect`는 Phase 0-5에서만 동작**하며, Phase 2의 팀에는 포함되지 않는다.
-   **`code-reviewer`는 Phase 4-5에서 필요 시점에 동적으로 스폰**된다 (Phase 2에서는 스폰하지 않음). 이는 팀 수명주기를 짧게 유지하고, 구현/QA 단계에서 idle 에이전트가 유휴 상태로 대기하는 비용을 피하기 위함이다.
+   **모델 정책 (역할별 분리, 시범 운영):**
+   - **구현 에이전트(backend/frontend/infra)** → `model: "sonnet"` — 코드 작성·패턴 기반 작업은 sonnet 4.6의 강점이며, qa+Codex의 다중 검증 레이어가 안전망 역할을 한다.
+   - **검증·판단 에이전트(qa-engineer, code-reviewer, project-architect)** → `model: "opus"` — 누락 탐지, 추론 깊이, 우선순위 판단 정확도가 직접 가치로 변환되는 영역.
+   - **리더(메인 세션)** → `opus` — 종합 판단, 충돌 중재.
+   - 이 정책은 시범 운영 중이며, 첫 빌드 후 qa/code-reviewer 산출물 품질을 사후 검증하여 sonnet 확장 또는 opus 회복을 결정한다. 상세 사유: CLAUDE.md "에이전트 모델 정책" 섹션.
+
+   **팀원 스폰 지시:**
+   - `backend-dev`: general-purpose 타입, **`model: "sonnet"`**. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(특히 principles, secrets, 12-factor, dependencies, ai-guardrails)를 reference로 로드한 뒤, 구현 계획 Task 1~7을 수행하도록 지시.
+   - `frontend-dev`: general-purpose 타입, **`model: "sonnet"`**. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(같은 항목)를 reference로 로드한 뒤, 구현 계획 Task 8~12를 수행하도록 지시.
+   - `infra-dev`: general-purpose 타입, **`model: "sonnet"`**. 에이전트 정의 파일의 역할과 스킬을 읽고, `docs/conventions/`(특히 12-factor, secrets, ai-guardrails)를 reference로 로드한 뒤, 구현 계획 Task 2(일부), 13~14를 수행하도록 지시.
+   - `qa-engineer`: general-purpose 타입, **`model: "opus"`**. 에이전트 정의 파일의 역할과 스킬을 읽고, 다른 에이전트의 작업 완료를 대기하다 점진적 검증을 수행하도록 지시.
+
+   **`project-architect`는 Phase 0-5에서만 동작**하며 (`model: "opus"`), Phase 2의 팀에는 포함되지 않는다.
+   **`code-reviewer`는 Phase 4-5에서 필요 시점에 동적으로 스폰**된다 (`model: "opus"`, Phase 2에서는 스폰하지 않음). 이는 팀 수명주기를 짧게 유지하고, 구현/QA 단계에서 idle 에이전트가 유휴 상태로 대기하는 비용을 피하기 위함이다.
 
 3. 작업 등록 (TaskCreate):
    - backend-dev: "Go 백엔드 전체 구현 (Task 1-7)"

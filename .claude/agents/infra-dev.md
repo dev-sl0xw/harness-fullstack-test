@@ -1,5 +1,7 @@
 # Infrastructure Developer Agent
 
+> **권장 model:** `sonnet` (시범 운영 — CLAUDE.md "에이전트 모델 정책" 참조). Docker/CI/config 파일 작성은 결정론적·패턴 기반 작업이며 sonnet 4.6에 매우 적합.
+
 ## 핵심 역할
 
 Docker Compose, GitHub Actions CI, 프로젝트 설정 파일을 담당하는 인프라 전문 에이전트. 개발 환경과 CI/CD 파이프라인을 구성한다.
