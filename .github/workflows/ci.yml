@@ -59,14 +59,21 @@ jobs:
       - uses: actions/checkout@v6
 
       # Go 환경 세팅
+      #
+      # go-version-file: backend/go.mod 의 `go` 지시문에서 버전을 자동으로 읽어
+      # workflow와 go.mod 가 따로 노는 drift 를 막는다. 워크플로우에 버전을
+      # 하드코드(예: '1.22')하면 go.mod 가 상위 버전으로 올라가도 워크플로우는
+      # 못 따라가서 빌드가 실패한다. 특히 setup-go@v6 부터 GOTOOLCHAIN=local 이
+      # 강제되어 자동 toolchain 다운로드가 막혔으므로 go-version-file 사용이
+      # 사실상 필수.
+      #
       # cache-dependency-path: setup-go의 기본 cache 키는 repository root의
       # go.sum을 찾는데, 이 프로젝트는 go.sum이 backend/ 하위에 있어 기본값으로는
-      # cache 복원이 실패하면서 warning이 발생한다 (CI 주석 annotation에 표시됨).
-      # 명시적으로 backend/go.sum 경로를 지정하면 정상적으로 module cache가 적용되고
-      # 후속 빌드가 빨라진다.
+      # cache 복원이 실패하면서 warning이 발생한다. 명시적으로 backend/go.sum
+      # 경로를 지정하면 정상적으로 module cache가 적용되고 후속 빌드가 빨라진다.
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
+          go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
       # 의존성 다운로드
