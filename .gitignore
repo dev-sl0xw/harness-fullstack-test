@@ -18,6 +18,23 @@ frontend/dist/
 # Env
 .env
 .env.local
+.env.*
+!.env.example
+
+# Secrets / Credentials (docs/conventions/secrets.md 참조)
+# 주의: *credentials*.json 처럼 .json 접미사를 명시하여
+# credentials-flow.md / test-credentials.txt 같은 비시크릿 파일이
+# 의도치 않게 차단되는 것을 방지한다.
+*.pem
+*.key
+id_rsa*
+credentials.json
+*credentials*.json
+service-account*.json
+.aws/
+.ssh/
+*.kdbx
+*.keychain
 
 # Docker
 pgdata/

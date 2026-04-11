@@ -46,8 +46,12 @@ harness-fullstack-test/
 │   ├── Dockerfile
 │   └── go.mod
 │
+├── docs/
+│   └── conventions/          ← プロジェクトルール (principles, secrets, 12-factor,
+│                                dependencies, ai-guardrails) — `project-architect` 生成
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
+├── .env.example              ← 環境変数テンプレート (.env にコピー)
 ├── .claude/                  ← Claude Code ハーネス (エージェント + スキル)
 │   ├── agents/               ← エージェント定義
 │   └── skills/               ← スキル定義
@@ -74,7 +78,18 @@ harness-fullstack-test/
 
 ## はじめに
 
-### Docker Compose (推奨)
+### 1. 環境変数
+
+テンプレートをコピーして実際の値を入れる:
+
+```bash
+cp .env.example .env
+# その後 .env を開いて DB 認証情報、JWT シークレット等を入力
+```
+
+全キー一覧と作成根拠は [`docs/conventions/secrets.md`](docs/conventions/secrets.md) にある。Docker Compose で実行する場合は `docker-compose.yml` に含まれる dev デフォルトで十分なので `.env` なしでも動作する — `.env` は Docker 外で個別実行する場合、またはデフォルト値を上書きしたい場合に主に必要となる。
+
+### 2. Docker Compose (推奨)
 
 ```bash
 docker compose up -d
@@ -84,7 +99,7 @@ docker compose up -d
 - Backend: http://localhost:8080
 - PostgreSQL: localhost:5432
 
-### 個別実行
+### 3. 個別実行
 
 ```bash
 # バックエンド
@@ -296,7 +311,7 @@ Claude Code 認証      ← Anthropic 側で別途管理
 
 ### システムレベルのガードレール (すべてのエージェントに適用)
 
-- **読み取り禁止:** `.env`, `.env.*` (ただし `.env.example` は許可), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **ユーザーホームのシェル初期化ファイル** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/トークンが環境変数として export されている可能性がある)、**git 履歴経由で露出した secret** (過去に commit されて削除された secret ファイルを `git log -p`/`git show` で復元しないこと)
+- **読み取り禁止:** `.env`, `.env.*` (ただし `.env.example` は許可), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*.json`, `service-account*.json`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **ユーザーホームのシェル初期化ファイル** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/トークンが環境変数として export されている可能性がある)、**git 履歴経由で露出した secret** (過去に commit されて削除された secret ファイルを `git log -p`/`git show` で復元しないこと)。このポリシーはユーザー承認でも解除されない — 値が本当に必要なら、AI エージェントの read を経由せずユーザーが直接 cat/エディタで開くこと。
 - **書き込み禁止:** 上記すべて + ユーザーシステム設定 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + 本番設定 (`config/prod.yaml`)
 - **実行禁止 (ユーザーの明示的な承認なし):** ワイルドカード `rm -rf`, `git push -f`, `git reset --hard`, 本番 DB への直接アクセス, `curl ... | sh`, `sudo`
 - **ロギング禁止:** 環境変数のダンプ、`Authorization` ヘッダー、平文の DB 接続文字列

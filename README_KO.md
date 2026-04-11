@@ -46,8 +46,12 @@ harness-fullstack-test/
 │   ├── Dockerfile
 │   └── go.mod
 │
+├── docs/
+│   └── conventions/          ← 프로젝트 규칙 (principles, secrets, 12-factor,
+│                                dependencies, ai-guardrails) — `project-architect` 산출
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
+├── .env.example              ← 환경변수 템플릿 (.env로 복사)
 ├── .claude/                  ← Claude Code 하네스 (에이전트 + 스킬)
 │   ├── agents/               ← 에이전트 정의
 │   └── skills/               ← 스킬 정의
@@ -74,7 +78,18 @@ harness-fullstack-test/
 
 ## 시작하기
 
-### Docker Compose (권장)
+### 1. 환경변수
+
+템플릿을 복사한 뒤 실제 값을 채운다:
+
+```bash
+cp .env.example .env
+# 그 다음 .env를 열어 DB 자격증명, JWT 비밀키 등을 입력
+```
+
+전체 키 목록과 작성 근거는 [`docs/conventions/secrets.md`](docs/conventions/secrets.md)에 있다. Docker Compose로 실행하는 경우 `docker-compose.yml`에 포함된 dev 기본값으로 충분하므로 `.env` 없이도 동작한다 — `.env`는 Docker 외부에서 개별 실행하거나 기본값을 오버라이드하고 싶을 때 주로 필요하다.
+
+### 2. Docker Compose (권장)
 
 ```bash
 docker compose up -d
@@ -84,7 +99,7 @@ docker compose up -d
 - Backend: http://localhost:8080
 - PostgreSQL: localhost:5432
 
-### 개별 실행
+### 3. 개별 실행
 
 ```bash
 # 백엔드
@@ -296,7 +311,7 @@ Claude Code 인증      ← Anthropic 측에서 별도 관리
 
 ### 시스템 레벨 가드레일 (모든 에이전트에 적용)
 
-- **read 금지:** `.env`, `.env.*` (단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **사용자 홈 쉘 초기화 파일**(`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/토큰이 환경변수 형태로 export되어 있을 수 있음), **git 이력 기반 노출 secret**(과거에 commit되었다 삭제된 secret 파일을 `git log -p`/`git show`로 복원하지 말 것)
+- **read 금지:** `.env`, `.env.*` (단 `.env.example`은 허용), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*.json`, `service-account*.json`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **사용자 홈 쉘 초기화 파일**(`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secret/토큰이 환경변수 형태로 export되어 있을 수 있음), **git 이력 기반 노출 secret**(과거에 commit되었다 삭제된 secret 파일을 `git log -p`/`git show`로 복원하지 말 것). 이 정책은 사용자 승인으로도 해제되지 않는다 — 정말 값이 필요하면 사용자가 직접 cat/편집기로 보는 것이 옳다 (AI 에이전트의 read를 우회).
 - **write 금지:** 위 파일 모두 + 사용자 시스템 설정 (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) + production config (`config/prod.yaml`)
 - **exec 금지 (사용자 명시 승인 없이):** 와일드카드 `rm -rf`, `git push -f`, `git reset --hard`, prod DB 직접 접근, `curl ... | sh`, `sudo`
 - **로깅 금지:** 환경변수 dump, `Authorization` 헤더, DB 평문 connection string

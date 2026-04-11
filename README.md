@@ -46,8 +46,12 @@ harness-fullstack-test/
 │   ├── Dockerfile
 │   └── go.mod
 │
+├── docs/
+│   └── conventions/          ← Project rules (principles, secrets, 12-factor,
+│                                dependencies, ai-guardrails) — by `project-architect`
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
+├── .env.example              ← Env var template (copy to .env)
 ├── .claude/                  ← Claude Code harness (agents + skills)
 │   ├── agents/               ← Agent definitions
 │   └── skills/               ← Skill definitions
@@ -74,7 +78,18 @@ harness-fullstack-test/
 
 ## Getting Started
 
-### Docker Compose (Recommended)
+### 1. Environment variables
+
+Copy the template and fill in real values:
+
+```bash
+cp .env.example .env
+# then edit .env with your DB credentials, JWT secret, etc.
+```
+
+The full key list and rationale live in [`docs/conventions/secrets.md`](docs/conventions/secrets.md). For Docker Compose the dev defaults baked into `docker-compose.yml` are sufficient — `.env` is mainly needed when running services individually outside Docker, or when you want to override the defaults.
+
+### 2. Docker Compose (Recommended)
 
 ```bash
 docker compose up -d
@@ -84,7 +99,7 @@ docker compose up -d
 - Backend: http://localhost:8080
 - PostgreSQL: localhost:5432
 
-### Run Individually
+### 3. Run Individually
 
 ```bash
 # Backend
@@ -298,7 +313,7 @@ This project is wired up for [Claude Code](https://claude.com/claude-code) + the
 
 ### System-level guardrails (apply to every agent)
 
-- **Read-blocked:** `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **shell init files** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secrets/tokens often live there as exported env vars), and **VCS-history-exposed secrets** (do not resurrect previously-deleted secret files via `git log -p` / `git show`)
+- **Read-blocked:** `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `*credentials*.json`, `service-account*.json`, `~/.aws/*`, `~/.ssh/*`, `*.kdbx`, **shell init files** (`~/.zshrc`, `~/.bashrc`, `~/.profile`, `~/.zprofile` — secrets/tokens often live there as exported env vars), and **VCS-history-exposed secrets** (do not resurrect previously-deleted secret files via `git log -p` / `git show`). This policy is not lifted by user approval — if you really need the value, open the file yourself (cat/editor) instead of routing through the AI agent.
 - **Write-blocked:** all of the above, plus user system files (`~/.gitconfig`, `~/.npmrc`, `~/.ssh/config`) and production config (`config/prod.yaml`)
 - **Exec-blocked (without explicit user approval):** wildcard `rm -rf`, `git push -f`, `git reset --hard`, direct prod DB access, `curl ... | sh`, `sudo`
 - **Log-blocked:** environment-variable dumps, `Authorization` headers, plain-text DB connection strings
