@@ -169,20 +169,22 @@ HTTP 요청 → Router → Middleware(JWT 검증) → Handler → Service → Re
 │                   │ 에이전트 팀 스폰 (같은 프로세스 · 각자 컨텍스트)       │
 │                   ▼                                                    │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  팀 (fullstack-team) — 전원 Anthropic API로 Claude Opus 호출       │  │
+│  │  팀 (fullstack-team) — Anthropic API, 역할별 모델 분리 정책        │  │
 │  │                                                                  │  │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │  │
 │  │  │ backend-dev  │  │ frontend-dev │  │ infra-dev    │            │  │
-│  │  │  (opus)      │  │  (opus)      │  │  (opus)      │            │  │
+│  │  │  (sonnet)    │  │  (sonnet)    │  │  (sonnet)    │            │  │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘            │  │
+│  │       구현 에이전트 — 코드/패턴 작성                               │  │
 │  │                                                                  │  │
 │  │  ┌──────────────┐  ┌──────────────────────────────┐              │  │
-│  │  │ qa-engineer  │  │ code-reviewer (신규)          │              │  │
+│  │  │ qa-engineer  │  │ code-reviewer                │              │  │
 │  │  │  (opus)      │  │  (opus)                      │              │  │
 │  │  │              │  │  · 본인은 Claude로 사고        │              │  │
 │  │  │ Incremental  │  │  · Bash(codex review ...) 호출│              │  │
 │  │  │ 계약 검증     │  │  ──────────┐                 │              │  │
 │  │  └──────────────┘  └────────────┼─────────────────┘              │  │
+│  │       검증·판단 에이전트 — opus 유지                                │  │
 │  └───────────────────────────────┼─┼────────────────────────────────┘  │
 └──────────────────────────────────┼─┼───────────────────────────────────┘
                                    │ │ 프로세스 경계 (fork/exec)
@@ -216,14 +218,17 @@ HTTP 요청 → Router → Middleware(JWT 검증) → Handler → Service → Re
 
 ```
 [1] Claude 계열 호출 (항상 일어남)
-    리더 + 모든 에이전트 (backend-dev, frontend-dev, infra-dev,
-                         qa-engineer, code-reviewer 본인의 사고)
+    리더 (메인 세션) ─────────────────────────────► claude-opus-4-6
+    backend-dev / frontend-dev / infra-dev ────► claude-sonnet-4-6
+    qa-engineer / code-reviewer / project-architect ► claude-opus-4-6
          │
          ▼
     Anthropic API  ← Anthropic 계정/구독
-         │
-         ▼
-    claude-opus-4-6
+
+    참고: 이 모델 분리는 의도적인 역할 기반 정책 (시범 운영 중).
+    구현 에이전트는 코드/패턴 작성이 sonnet 4.6의 강점이라 sonnet을
+    사용하고, qa + Codex 리뷰가 안전망 역할을 한다. 검증·판단
+    에이전트는 추론 깊이가 직접 가치로 변환되는 영역이라 opus 유지.
 
 [2] OpenAI/Codex 계열 호출 (code-reviewer가 PR 직전에만)
     code-reviewer가 Bash 툴로 `codex review ...` 실행

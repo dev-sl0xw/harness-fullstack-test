@@ -169,20 +169,22 @@ HTTP リクエスト → Router → Middleware(JWT 検証) → Handler → Servi
 │                   │ エージェントチームをスポーン (同一プロセス · 独立コンテキスト) │
 │                   ▼                                                    │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  チーム (fullstack-team) — 全員 Anthropic API で Claude Opus 呼び出し │  │
+│  │  チーム (fullstack-team) — Anthropic API、役割別モデル分離ポリシー │  │
 │  │                                                                  │  │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │  │
 │  │  │ backend-dev  │  │ frontend-dev │  │ infra-dev    │            │  │
-│  │  │  (opus)      │  │  (opus)      │  │  (opus)      │            │  │
+│  │  │  (sonnet)    │  │  (sonnet)    │  │  (sonnet)    │            │  │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘            │  │
+│  │       実装エージェント — コード/パターン作成                       │  │
 │  │                                                                  │  │
 │  │  ┌──────────────┐  ┌──────────────────────────────┐              │  │
-│  │  │ qa-engineer  │  │ code-reviewer (新規)          │              │  │
+│  │  │ qa-engineer  │  │ code-reviewer                │              │  │
 │  │  │  (opus)      │  │  (opus)                      │              │  │
 │  │  │              │  │  · 本人は Claude で思考        │              │  │
 │  │  │ Incremental  │  │  · Bash(codex review ...) 呼出│              │  │
 │  │  │ 契約検証      │  │  ──────────┐                 │              │  │
 │  │  └──────────────┘  └────────────┼─────────────────┘              │  │
+│  │       検証・判断エージェント — opus 維持                            │  │
 │  └───────────────────────────────┼─┼────────────────────────────────┘  │
 └──────────────────────────────────┼─┼───────────────────────────────────┘
                                    │ │ プロセス境界 (fork/exec)
@@ -216,14 +218,18 @@ HTTP リクエスト → Router → Middleware(JWT 検証) → Handler → Servi
 
 ```
 [1] Claude 系呼び出し (常時)
-    リーダー + すべてのエージェント (backend-dev, frontend-dev, infra-dev,
-                                   qa-engineer, code-reviewer 本人の思考)
+    リーダー (メインセッション) ────────────────────► claude-opus-4-6
+    backend-dev / frontend-dev / infra-dev ────► claude-sonnet-4-6
+    qa-engineer / code-reviewer / project-architect ► claude-opus-4-6
          │
          ▼
     Anthropic API  ← Anthropic アカウント/サブスク
-         │
-         ▼
-    claude-opus-4-6
+
+    補足: このモデル分離は意図的な役割ベースのポリシー (試験運用中)。
+    実装エージェントはコード/パターン作成が sonnet 4.6 の強みなので
+    sonnet を使い、qa + Codex レビューがセーフティネットの役割を果たす。
+    検証・判断エージェントは推論深度が直接価値に変換される領域なので
+    opus を維持する。
 
 [2] OpenAI/Codex 系呼び出し (code-reviewer が PR 直前のみ)
     code-reviewer が Bash ツールで `codex review ...` を実行

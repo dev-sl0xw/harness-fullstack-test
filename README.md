@@ -169,21 +169,23 @@ Understanding the boundary prevents confusion about billing, auth, and which mod
 │                   │ spawns agent team (same process, isolated context) │
 │                   ▼                                                    │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Team (fullstack-team) — all use Claude Opus via Anthropic API   │  │
+│  │  Team (fullstack-team) — Anthropic API, model split by role      │  │
 │  │                                                                  │  │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │  │
 │  │  │ backend-dev  │  │ frontend-dev │  │ infra-dev    │            │  │
-│  │  │  (opus)      │  │  (opus)      │  │  (opus)      │            │  │
+│  │  │  (sonnet)    │  │  (sonnet)    │  │  (sonnet)    │            │  │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘            │  │
+│  │       implementation agents — code/pattern work                  │  │
 │  │                                                                  │  │
 │  │  ┌──────────────┐  ┌──────────────────────────────┐              │  │
-│  │  │ qa-engineer  │  │ code-reviewer (new)          │              │  │
+│  │  │ qa-engineer  │  │ code-reviewer                │              │  │
 │  │  │  (opus)      │  │  (opus)                      │              │  │
 │  │  │              │  │  · thinks in Claude          │              │  │
 │  │  │ Incremental  │  │  · calls Bash("codex ...")   │              │  │
 │  │  │ contract     │  │  ──────────┐                 │              │  │
 │  │  │ verification │  │            │                 │              │  │
 │  │  └──────────────┘  └────────────┼─────────────────┘              │  │
+│  │       verification/judgment agents — opus retained               │  │
 │  └───────────────────────────────┼─┼────────────────────────────────┘  │
 └──────────────────────────────────┼─┼───────────────────────────────────┘
                                    │ │ process boundary (fork/exec)
@@ -218,14 +220,18 @@ Understanding the boundary prevents confusion about billing, auth, and which mod
 
 ```
 [1] Claude path (runs constantly)
-    Leader + every agent (backend-dev, frontend-dev, infra-dev,
-                          qa-engineer, code-reviewer's own reasoning)
+    Leader (main session) ─────────────────────► claude-opus-4-6
+    backend-dev / frontend-dev / infra-dev ────► claude-sonnet-4-6
+    qa-engineer / code-reviewer / project-architect ► claude-opus-4-6
          │
          ▼
     Anthropic API  ← your Anthropic account / subscription
-         │
-         ▼
-    claude-opus-4-6
+
+    Note: model split is a deliberate role-based policy (currently
+    in trial). Implementation agents use sonnet because code/pattern
+    work is its strength, with qa + Codex review acting as the safety
+    net. Verification/judgment agents stay on opus because reasoning
+    depth converts directly into value there.
 
 [2] OpenAI / Codex path (only when code-reviewer runs at PR time)
     code-reviewer invokes Bash → `codex review --base main ...`
