@@ -111,6 +111,11 @@ func (r *UserRepository) FindAll() ([]model.User, error) {
 		}
 		users = append(users, user)
 	}
+	// rows.Err()는 iteration 중 발생한 에러(네트워크 끊김, 디코딩 오류 등)를 반환한다.
+	// rows.Next()가 false를 반환해도 에러가 남아 있을 수 있으므로 반드시 확인해야 한다.
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return users, nil
 }
 

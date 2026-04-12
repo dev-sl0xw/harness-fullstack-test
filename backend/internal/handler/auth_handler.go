@@ -17,6 +17,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -51,16 +52,20 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req model.RegisterRequest
 
-	// ShouldBindJSON: JSON 바디를 구조체로 파싱 + binding 태그 검증
-	// 실패하면 어떤 필드가 잘못되었는지 에러 메시지를 반환한다.
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	user, err := h.authService.Register(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 도메인 에러에 따라 적절한 HTTP 상태 코드를 반환한다.
+		// raw DB 에러는 사용자에게 노출하지 않는다 (정보 누출 방지).
+		if errors.Is(err, service.ErrEmailAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
@@ -88,13 +93,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	token, err := h.authService.Login(&req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		// 로그인 실패는 항상 401 + 동일 메시지.
+		// ErrInvalidCredentials든 다른 에러든 사용자에게는 같은 응답을 보낸다.
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
 		return
 	}
 

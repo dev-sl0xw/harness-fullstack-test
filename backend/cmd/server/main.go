@@ -22,6 +22,7 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq" // PostgreSQL 드라이버. 직접 호출하지 않지만 init()으로 등록됨.
 
@@ -83,6 +84,17 @@ func main() {
 	// 4단계: Gin 라우터 설정
 	// =========================================================================
 	r := gin.Default()
+
+	// CORS 설정: 프론트엔드(Vite dev server)에서 백엔드 API를 호출할 때 필요하다.
+	// 브라우저는 다른 origin(포트/도메인)으로의 요청을 기본적으로 차단한다.
+	// 여기서는 Vite dev server(localhost:5173)를 명시적으로 허용한다.
+	// 왜 AllowAllOrigins가 아닌가? 최소 권한 원칙 — 필요한 origin만 열어야 안전하다.
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
 	// 헬스체크: 서버 상태 확인용
 	r.GET("/health", func(c *gin.Context) {

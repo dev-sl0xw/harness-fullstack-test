@@ -11,7 +11,9 @@
 # =============================================================================
 
 # --- 1단계: 빌드 ---
-FROM node:20-alpine AS builder
+# Node 22: CI(ci.yml)와 동일한 메이저 버전으로 통일한다.
+# CI에서 통과한 코드가 Docker 빌드에서 실패하는 drift를 방지한다.
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -24,14 +26,18 @@ COPY . .
 RUN npm run build
 
 # --- 2단계: nginx로 서빙 ---
-FROM nginx:alpine
+# nginxinc/nginx-unprivileged는 non-root(uid 101)로 실행되는 nginx 이미지이다.
+# 기본 nginx 이미지와 달리 USER 전환이 불필요하며 컨테이너 보안 기본선에 맞다.
+FROM nginxinc/nginx-unprivileged:alpine
 
-# 빌드된 정적 파일을 nginx 기본 서빙 디렉토리로 복사
+# 빌드된 정적 파일을 nginx 서빙 디렉토리로 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # SPA(Single Page Application) 지원을 위한 nginx 설정
 # React Router가 클라이언트 사이드 라우팅을 처리하므로,
 # 모든 경로를 index.html로 리다이렉트해야 한다.
+# nginxinc/nginx-unprivileged는 non-root라 1024 이하 포트를 바인드할 수 없다.
+# 5173은 1024 이상이므로 문제 없다.
 RUN echo 'server { \
     listen 5173; \
     root /usr/share/nginx/html; \

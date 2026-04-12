@@ -19,7 +19,8 @@ RUN go mod download
 
 # 소스코드 복사 및 빌드
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/server
+# -ldflags="-s -w": 디버그 심볼과 DWARF 정보를 제거하여 바이너리 크기를 줄인다.
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /server ./cmd/server
 
 # --- 2단계: 실행 ---
 FROM alpine:3.19
@@ -27,8 +28,15 @@ FROM alpine:3.19
 # CA 인증서 설치 (HTTPS 요청 시 필요)
 RUN apk --no-cache add ca-certificates
 
+# non-root 사용자를 생성하여 최소 권한으로 서버를 실행한다.
+# 왜 root가 아닌가? API 서버가 root로 실행되면 취약점 악용 시 피해 범위가 커진다.
+RUN adduser -D -u 10001 app
+
 WORKDIR /app
 COPY --from=builder /server .
+RUN chown app:app ./server
+
+USER app
 
 EXPOSE 8080
 

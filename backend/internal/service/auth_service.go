@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 
 	"harness-fullstack-test/internal/model"
@@ -38,6 +39,11 @@ import (
 // jwtSecretMinLength は JWT 시크릿의 최소 바이트 수이다.
 // HMAC-SHA256의 안전한 키 길이는 32바이트 이상이 권장된다.
 const jwtSecretMinLength = 32
+
+// dummyHash는 timing attack 방지용 더미 bcrypt 해시이다.
+// 존재하지 않는 이메일로 로그인할 때도 bcrypt 비교를 수행하여
+// 응답 시간이 일정하게 만든다 (이메일 존재 여부 추론 차단).
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-timing-equalizer"), bcrypt.DefaultCost)
 
 // AuthService는 인증 관련 비즈니스 로직을 처리하는 구조체이다.
 type AuthService struct {
@@ -88,7 +94,16 @@ func (s *AuthService) Register(req *model.RegisterRequest) (*model.User, error) 
 		return nil, err
 	}
 
-	return s.userRepo.Create(req.Email, string(hashedPassword), req.Name)
+	user, err := s.userRepo.Create(req.Email, string(hashedPassword), req.Name)
+	if err != nil {
+		// PostgreSQL UNIQUE 제약조건 위반(코드 23505)을 도메인 에러로 변환한다.
+		// raw DB 에러를 그대로 반환하면 handler가 DB 구현 세부를 사용자에게 노출할 위험이 있다.
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			return nil, ErrEmailAlreadyExists
+		}
+		return nil, err
+	}
+	return user, nil
 }
 
 // Login은 이메일/비밀번호로 로그인하고 JWT 토큰을 반환한다.
@@ -99,20 +114,24 @@ func (s *AuthService) Register(req *model.RegisterRequest) (*model.User, error) 
 //   3. 일치하면 JWT 토큰을 생성하여 반환한다
 //
 // 보안 주의사항:
-//   - "이메일이 없음"과 "비밀번호가 틀림"을 구분하지 않는다
-//   - 공격자에게 어떤 이메일이 등록되어 있는지 알려주지 않기 위함
+//   - "이메일이 없음"과 "비밀번호가 틀림"을 구분하지 않는다 (에러 메시지 통일)
+//   - 이메일이 없을 때도 dummyHash로 bcrypt 비교를 수행하여 응답 시간을 일정하게 만든다
+//   - 이를 통해 timing attack으로 이메일 존재 여부를 추론하는 것을 차단한다
 func (s *AuthService) Login(req *model.LoginRequest) (string, error) {
 	// 1단계: 이메일로 유저 조회
 	user, err := s.userRepo.FindByEmail(req.Email)
 	if err != nil {
-		return "", errors.New("invalid email or password")
+		// 이메일이 없어도 bcrypt 비교를 수행하여 응답 시간을 일정하게 만든다 (timing attack 방지).
+		// dummyHash는 패키지 초기화 시 미리 생성해둔 더미 해시이다.
+		//nolint:errcheck
+		bcrypt.CompareHashAndPassword(dummyHash, []byte(req.Password))
+		return "", ErrInvalidCredentials
 	}
 
 	// 2단계: 비밀번호 검증
-	// bcrypt.CompareHashAndPassword: 저장된 해시와 입력된 평문 비밀번호를 비교
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
 	if err != nil {
-		return "", errors.New("invalid email or password")
+		return "", ErrInvalidCredentials
 	}
 
 	// 3단계: JWT 토큰 생성
@@ -128,9 +147,12 @@ func (s *AuthService) Login(req *model.LoginRequest) (string, error) {
 //   3. 클레임(user_id, email)을 추출하여 반환한다
 func (s *AuthService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-		// 서명 방식이 HMAC인지 확인 (다른 알고리즘으로 위조하는 것을 방지)
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+		// 서명 방식이 정확히 HS256인지 확인한다.
+		// 이전에는 HMAC 계열(HS256/HS384/HS512) 전체를 허용했으나,
+		// 발급은 HS256으로 고정하면서 검증은 더 느슨하면 정책이 불일치한다.
+		// none 알고리즘 공격 + 알고리즘 다운그레이드 공격을 모두 차단한다.
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return s.jwtSecret, nil
 	})
