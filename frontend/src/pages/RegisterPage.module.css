@@ -37,3 +37,18 @@
   border-radius: 4px;
   font-size: 14px;
 }
+
+.submitButton {
+  padding: 10px;
+  background: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

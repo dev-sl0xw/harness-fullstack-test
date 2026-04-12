@@ -16,7 +16,7 @@
 // =============================================================================
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { apiClient } from '../api/client'
 import type { LoginResponse } from '../types'
@@ -33,25 +33,31 @@ export function LoginPage() {
 
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
-  // handleSubmit: 폼 제출 시 실행되는 함수
-  // FormEvent: HTML form 태그의 submit 이벤트 타입
+  // ProtectedRoute가 state.from으로 전달한 원래 URL. 없으면 '/'로 이동.
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
+
   const handleSubmit = async (e: FormEvent) => {
-    // 기본 폼 제출 동작(페이지 새로고침)을 막는다
     e.preventDefault()
+
+    // trim 검증: 공백-only 입력을 서버로 보내기 전에 차단.
+    if (!email.trim() || !password.trim()) {
+      setError('이메일과 비밀번호를 입력해주세요.')
+      return
+    }
+
     setError('')
     setLoading(true)
 
     try {
-      // 백엔드 로그인 API 호출
       const data = await apiClient.post<LoginResponse>('/api/auth/login', {
-        email,
+        email: email.trim(),
         password,
       })
-      // AuthContext에 토큰 저장 (localStorage + 상태 업데이트)
       login(data.token)
-      // 메인 페이지로 이동
-      navigate('/')
+      // 로그인 성공 후 원래 목적지로 복귀
+      navigate(from, { replace: true })
     } catch (err) {
       // 에러 메시지 표시
       setError(err instanceof Error ? err.message : 'Login failed')
@@ -85,7 +91,7 @@ export function LoginPage() {
             required
           />
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className={styles.submitButton}>
           {loading ? '로그인 중...' : '로그인'}
         </button>
       </form>

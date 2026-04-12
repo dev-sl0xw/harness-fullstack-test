@@ -28,15 +28,21 @@ export function RegisterPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+
+    // trim 검증: 공백-only 입력을 서버로 보내기 전에 차단
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError('모든 필드를 입력해주세요.')
+      return
+    }
+
     setError('')
     setLoading(true)
 
     try {
-      // 회원가입 API 호출
       await apiClient.post<User>('/api/auth/register', {
-        email,
+        email: email.trim(),
         password,
-        name,
+        name: name.trim(),
       })
       // 성공: 로그인 페이지로 이동
       // 자동 로그인을 하지 않는 이유: 사용자가 입력한 정보를 확인하게 하기 위함
@@ -84,7 +90,7 @@ export function RegisterPage() {
             required
           />
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className={styles.submitButton}>
           {loading ? '가입 중...' : '회원가입'}
         </button>
       </form>
