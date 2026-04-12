@@ -58,7 +58,7 @@ export function RegisterPage() {
     <div className={styles.container}>
       <h1>회원가입</h1>
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}
         <div className={styles.field}>
           <label htmlFor="name">이름</label>
           <input
@@ -90,7 +90,7 @@ export function RegisterPage() {
             required
           />
         </div>
-        <button type="submit" disabled={loading} className={styles.submitButton}>
+        <button type="submit" disabled={loading} aria-busy={loading} className={styles.submitButton}>
           {loading ? '가입 중...' : '회원가입'}
         </button>
       </form>

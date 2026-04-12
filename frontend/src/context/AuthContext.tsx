@@ -18,7 +18,7 @@
 //   로그아웃 → logout() 호출 → localStorage에서 제거 + 상태 초기화
 //   앱 시작 → localStorage에서 토큰 복원 → 로그인 상태 유지
 // =============================================================================
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
 
 // AuthContextType: Context가 제공하는 값의 타입 정의
@@ -42,27 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.getItem('token')
   )
 
-  // login: 로그인 성공 시 호출. 토큰을 저장한다.
-  const login = (newToken: string) => {
+  // useCallback으로 함수 참조를 안정화한다.
+  // 이 함수들이 매 렌더마다 새로 생성되면 useMemo의 의존성이 바뀌어 효과가 없다.
+  const login = useCallback((newToken: string) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
-  }
+  }, [])
 
-  // logout: 로그아웃 시 호출. 토큰을 제거한다.
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token')
     setToken(null)
-  }
+  }, [])
+
+  // useMemo로 Provider value 객체 참조를 안정화한다.
+  // 왜 필요한가? value={{...}}를 인라인으로 만들면 매 렌더마다 새 객체가 생성되어
+  // Context를 구독하는 모든 컴포넌트가 불필요하게 리렌더된다.
+  // token이 바뀔 때만 value 객체가 새로 생성되도록 한다.
+  const value = useMemo(() => ({
+    token,
+    isAuthenticated: token !== null,
+    login,
+    logout,
+  }), [token, login, logout])
 
   return (
-    <AuthContext.Provider
-      value={{
-        token,
-        isAuthenticated: token !== null,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
