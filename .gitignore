@@ -2,10 +2,15 @@
 backend/tmp/
 backend/vendor/
 backend/server
+bin/
 
 # Node
 frontend/node_modules/
 frontend/dist/
+frontend/coverage/
+
+# Logs
+*.log
 
 # IDE
 .idea/

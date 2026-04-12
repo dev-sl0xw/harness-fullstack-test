@@ -18,8 +18,11 @@ services:
   # migrations/ 폴더의 SQL 파일이 최초 실행 시 자동으로 실행된다.
   db:
     image: postgres:16
-    ports:
-      - "5432:5432"
+    # expose만 사용: DB는 같은 compose 네트워크 안에서 서비스명(db)으로 접근 가능.
+    # 호스트에 직접 노출하지 않아 불필요한 공격면을 줄인다.
+    # 로컬에서 psql 등으로 직접 접근하려면 docker compose exec db psql -U harness 사용.
+    expose:
+      - "5432"
     environment:
       POSTGRES_DB: harness
       POSTGRES_USER: harness

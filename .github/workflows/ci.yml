@@ -62,22 +62,17 @@ jobs:
 
     steps:
       # 저장소 코드를 체크아웃
-      - uses: actions/checkout@v6
+      # SHA pin: mutable major tag(@v6)만 쓰면 같은 표기여도 실제 리비전이 바뀔 수 있다.
+      # SHA로 고정하면 재현성이 보장되고 공급망 공격에 대한 통제가 강화된다.
+      # Dependabot이 새 릴리스를 자동 업데이트 PR로 제안하므로 유지 비용은 낮다.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # Go 환경 세팅
       #
       # go-version-file: backend/go.mod 의 `go` 지시문에서 버전을 자동으로 읽어
-      # workflow와 go.mod 가 따로 노는 drift 를 막는다. 워크플로우에 버전을
-      # 하드코드(예: '1.22')하면 go.mod 가 상위 버전으로 올라가도 워크플로우는
-      # 못 따라가서 빌드가 실패한다. 특히 setup-go@v6 부터 GOTOOLCHAIN=local 이
-      # 강제되어 자동 toolchain 다운로드가 막혔으므로 go-version-file 사용이
-      # 사실상 필수.
-      #
-      # cache-dependency-path: setup-go의 기본 cache 키는 repository root의
-      # go.sum을 찾는데, 이 프로젝트는 go.sum이 backend/ 하위에 있어 기본값으로는
-      # cache 복원이 실패하면서 warning이 발생한다. 명시적으로 backend/go.sum
-      # 경로를 지정하면 정상적으로 module cache가 적용되고 후속 빌드가 빨라진다.
-      - uses: actions/setup-go@v6
+      # workflow와 go.mod 가 따로 노는 drift 를 막는다.
+      # cache-dependency-path: go.sum이 backend/ 하위에 있어 명시 지정 필요.
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -107,10 +102,10 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # Node.js 환경 세팅
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '22'
           cache: 'npm'
