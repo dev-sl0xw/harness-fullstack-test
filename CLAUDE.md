@@ -53,6 +53,8 @@ docker compose config
 | infra-dev | Docker Compose, GitHub Actions CI, 환경설정 |
 | qa-engineer | 프론트↔백 경계면 계약 검증, 빌드 확인, 통합 정합성 (incremental) |
 | code-reviewer | PR 생성 직전 Codex 기반 코드 품질 second opinion (per-PR) |
+| solution-architect | 아키텍처 설계·다이어그램·ADR·decisions.json 작성 (Phase 0-0, 클라우드 키워드 트리거 시) |
+| cloud-infra-dev | 클라우드 IaC 구현 — CDK/Terraform 코드 생성·검증 (Phase 2, 조건부) |
 
 **스킬:**
 | 스킬 | 용도 | 사용 에이전트 |
@@ -64,6 +66,9 @@ docker compose config
 | infra-setup | Docker, CI, 설정 구성 가이드 | infra-dev |
 | qa-verify | 경계면 계약 검증 방법론 (shape/타입/빌드) | qa-engineer |
 | codex-review | Codex CLI 기반 PR 리뷰 + 보고서 작성 가이드 | code-reviewer |
+| solution-architecture | 요구사항 수집·아키텍처 패턴·클라우드/IaC 비교·ADR 템플릿 | solution-architect |
+| architecture-diagrams | Mermaid C4/sequence/deployment/ER 다이어그램 패턴·네이밍 | solution-architect |
+| cloud-infra-build | IaC 공통 원칙 + cloud+IaC 조합별 구현 가이드 (references/) | cloud-infra-dev |
 
 **실행 규칙:**
 - 풀스택 구현/빌드/전체 스택 구축 요청 시 `fullstack-orchestrator` 스킬을 통해 에이전트 팀으로 처리하라
@@ -72,6 +77,7 @@ docker compose config
 - **PR 생성 직전 README 자동 갱신**: 변경이 README에 반드시 반영되어야 하는 유형(에이전트/스킬 추가·삭제, 디렉토리 구조 변경, 컨벤션 추가, 환경변수/명령어 변경, 외부 서비스 추가, 인증 흐름 변경)이면 오케스트레이터 Phase 4-4가 자동으로 README.md/README_KO.md/README_JA.md 세 파일을 동기화한다. 사용자가 매번 "README도 업데이트해줘"라고 요청하지 않아도 동작. 상세 트리거 표는 `fullstack-orchestrator` SKILL.md의 Phase 4-4 참조
 - **PR 생성 직전**에는 `code-reviewer`를 통해 `codex-review` 스킬로 Codex second opinion 리뷰를 1회 수행한 후 PR 생성
 - `project-architect`는 **규칙 수립**(초기 1회/규칙 변경 시), `qa-engineer`는 **경계면 계약 검증**(incremental), `code-reviewer`는 **코드 품질 리뷰**(per-PR)로 역할 분리
+- **클라우드 배포/AWS/GCP/CDK/Terraform/아키텍처 설계 요청** 시 fullstack-orchestrator가 Phase 0-0(Solution Architecture)을 자동 트리거하여 solution-architect → project-architect → cloud-infra-dev 순서로 진행
 - 단순 질문/확인은 에이전트 팀 없이 직접 응답해도 무방
 - **에이전트 모델 정책 (역할별 분리, 시범 운영 중)**: 아래 "에이전트 모델 정책" 섹션 참조
 - 중간 산출물: `_workspace/` 디렉토리 (QA 보고서: `qa_report.md`, 리뷰 보고서: `review_report_*.md`)
@@ -124,7 +130,9 @@ docker compose config
 │   ├── frontend-dev.md
 │   ├── infra-dev.md
 │   ├── qa-engineer.md
-│   └── code-reviewer.md
+│   ├── code-reviewer.md
+│   ├── solution-architect.md
+│   └── cloud-infra-dev.md
 └── skills/
     ├── fullstack-orchestrator/
     │   └── SKILL.md
@@ -138,8 +146,17 @@ docker compose config
     │   └── SKILL.md
     ├── qa-verify/
     │   └── SKILL.md
-    └── codex-review/
-        └── SKILL.md
+    ├── codex-review/
+    │   └── SKILL.md
+    ├── solution-architecture/
+    │   ├── SKILL.md
+    │   └── references/
+    ├── architecture-diagrams/
+    │   ├── SKILL.md
+    │   └── references/
+    └── cloud-infra-build/
+        ├── SKILL.md
+        └── references/
 
 docs/conventions/        # project-architect 산출물
 ├── README.md            # 컨벤션 인덱스
@@ -148,6 +165,16 @@ docs/conventions/        # project-architect 산출물
 ├── 12-factor.md         # 환경 분리 + 12-Factor
 ├── dependencies.md      # 의존성 위생 (사고 사례 포함)
 └── ai-guardrails.md     # AI agent 작업 가드레일
+
+docs/architecture/           # solution-architect 산출물 (PR 2에서 생성)
+├── README.md
+├── *.mmd + *.md             # 7 다이어그램 + 7 wrapper
+└── adr/                     # Architecture Decision Records
+
+infra/aws-cdk/               # cloud-infra-dev 산출물 (PR 2에서 생성)
+├── bin/app.ts
+├── lib/*.ts
+└── test/
 ```
 
 **변경 이력:**
@@ -159,3 +186,4 @@ docs/conventions/        # project-architect 산출물
 | 2026-04-11 | project-architect 에이전트 + project-conventions 스킬 추가 | agents/project-architect.md, skills/project-conventions/, fullstack-orchestrator, code-reviewer | 프로젝트 초기 규칙·가드레일·환경 분리 골격을 별도 에이전트로 분리(전문성/타이밍/컨텍스트/재사용성 4축 모두 분리 유리). Phase A 8개 항목(KISS/YAGNI/DRY, SOLID, 민감 파일 가드레일, 비밀 관리, 환경 분리, 12-Factor, 의존성 위생, AI 가드레일) 도입. PR #6→#8 의존성 사고 재발 방지 사례 포함 |
 | 2026-04-11 | README 자동 갱신 Phase 4-4 추가 | fullstack-orchestrator, CLAUDE.md | 에이전트/스킬/디렉토리 구조/컨벤션/환경변수/명령어/외부서비스/인증흐름 변경 시 PR 생성 직전 README.md+README_KO.md+README_JA.md 세 파일을 자동 동기화. 사용자가 매번 명시 요청하지 않아도 트리거 표 매칭 시 자동 동작. 다국어 drift 방지를 위해 세 파일 동시 갱신 강제 |
 | 2026-04-11 | 에이전트 모델 정책: 역할별 분리 (시범 운영) | fullstack-orchestrator, CLAUDE.md, agents/*.md, README × 3 | 일괄 opus → 구현(backend/frontend/infra)=sonnet, 검증·판단(qa/reviewer/architect)+리더=opus 로 분리. 코드 작성은 sonnet 4.6의 강점이고 qa+Codex 다중 검증이 안전망 역할. 시범 운영이며 첫 빌드 후 qa/reviewer 산출물 품질을 사후 검증하여 sonnet 확장 또는 opus 회복 결정. 하네스 스킬의 일괄 opus 권고에서 의식적으로 벗어나는 결정 |
+| 2026-04-12 | solution-architect + cloud-infra-dev 에이전트 + 3개 스킬 추가, Phase 0-0 신설 | agents/{solution-architect,cloud-infra-dev}.md, skills/{solution-architecture,architecture-diagrams,cloud-infra-build}/, fullstack-orchestrator, CLAUDE.md, README × 3 | 클라우드 배포 역량 추가 + 재사용 가능 동적 팀 조립 패턴. EC2 Docker Compose 기반 Free Tier reference 구현 (PR 2). 설계 스펙: docs/superpowers/specs/2026-04-11-infra-architect-harness-extension-design.md |
