@@ -181,6 +181,11 @@ func (s *AuthService) generateToken(user *model.User) (string, error) {
 		UserID: user.ID,
 		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			// Subject(sub): JWT 표준 클레임. 토큰의 주체(사용자 ID)를 식별한다.
+			// Issuer(iss): JWT 표준 클레임. 토큰 발급자를 식별한다.
+			// 다른 서비스/미들웨어와의 호환성을 위해 표준 클레임도 포함한다.
+			Subject:   fmt.Sprintf("%d", user.ID),
+			Issuer:    "harness-fullstack-test",
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
