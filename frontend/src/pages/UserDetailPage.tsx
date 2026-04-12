@@ -14,6 +14,7 @@
 import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { apiClient } from '../api/client'
 import type { User } from '../types'
 import styles from './UserDetailPage.module.css'
@@ -29,6 +30,20 @@ export function UserDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const { token } = useAuth()
+
+  // JWT 토큰에서 현재 사용자 ID를 추출한다.
+  // 왜 필요한가? 본인이 아닌 유저의 수정/삭제 UI를 숨기기 위함이다.
+  // 백엔드에서 403으로 차단하지만, 프론트에서도 UI를 숨겨 사용자가 불가능한 작업을 시도하지 않게 ���다.
+  let currentUserId: number | null = null
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      currentUserId = payload.user_id ?? null
+    } catch { /* 토큰 디코딩 실패는 무시 — 백엔드에서 검증 */ }
+  }
+  const isOwner = currentUserId !== null && currentUserId === Number(id)
 
   // 컴포넌트 마운트 시 유저 정보를 불러온다
   useEffect(() => {
@@ -48,16 +63,21 @@ export function UserDetailPage() {
     fetchUser()
   }, [id])
 
-  // handleUpdate: 유저 정보 수정
   const handleUpdate = async (e: FormEvent) => {
     e.preventDefault()
+
+    if (!name.trim() || !email.trim()) {
+      setError('이름과 이메일을 입력해주세요.')
+      return
+    }
+
     setSaving(true)
     setError('')
 
     try {
       const updated = await apiClient.put<User>(`/api/users/${id}`, {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
       })
       setUser(updated)
       alert('수정되었습니다.')
@@ -68,15 +88,17 @@ export function UserDetailPage() {
     }
   }
 
-  // handleDelete: 유저 삭제
   const handleDelete = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) return
 
+    setDeleting(true)
     try {
       await apiClient.delete(`/api/users/${id}`)
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -99,40 +121,48 @@ export function UserDetailPage() {
         <p><strong>수정일:</strong> {new Date(user.updated_at).toLocaleString('ko-KR')}</p>
       </div>
 
-      <form onSubmit={handleUpdate} className={styles.form}>
-        <div className={styles.field}>
-          <label htmlFor="name">이름</label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </div>
-        <div className={styles.field}>
-          <label htmlFor="email">이메일</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className={styles.actions}>
-          <button type="submit" disabled={saving}>
-            {saving ? '저장 중...' : '수정'}
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            className={styles.deleteButton}
-          >
-            삭제
-          </button>
-        </div>
-      </form>
+      {/* 본인일 때만 수정/삭제 UI를 표시한다.
+          백엔드에서 403으로 차단하더라도, 프론트에서 UI 자체를 숨겨
+          사용자가 불가능한 작업을 시도하는 혼란을 방지한다. */}
+      {isOwner ? (
+        <form onSubmit={handleUpdate} className={styles.form}>
+          <div className={styles.field}>
+            <label htmlFor="name">이름</label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="email">이메일</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className={styles.actions}>
+            <button type="submit" disabled={saving || deleting} className={styles.submitButton}>
+              {saving ? '저장 중...' : '수정'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={saving || deleting}
+              className={styles.deleteButton}
+            >
+              {deleting ? '삭제 중...' : '삭제'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className={styles.info}>본인 계정만 수정/삭제할 수 있습니다.</p>
+      )}
     </div>
   )
 }

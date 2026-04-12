@@ -39,7 +39,8 @@
   font-size: 14px;
 }
 
-button {
+/* 지역 클래스: 전역 button 셀렉터 대신 .submitButton을 사용하여 다른 페이지로 스타일이 누수되지 않게 한다 */
+.submitButton {
   padding: 10px;
   background: #3182ce;
   color: white;
@@ -49,7 +50,7 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
+.submitButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

@@ -72,8 +72,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
     }
 
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(error.error || `HTTP ${response.status}`)
+    // 서버 에러 메시지를 그대로 사용자에게 노출하지 않고, status code별로 안전한 메시지로 매핑한다.
+    // 원본 에러는 console.error로만 기록하여 디버깅에 활용한다.
+    const errorBody = await response.json().catch(() => ({ error: 'Unknown error' }))
+    const rawMessage = errorBody.error || `HTTP ${response.status}`
+    console.error(`API error [${response.status}] ${path}:`, rawMessage)
+
+    const userMessage = getUserFriendlyMessage(response.status, rawMessage)
+    throw new Error(userMessage)
   }
 
   // 204 No Content (DELETE 성공 등)는 빈 응답이므로 JSON 파싱하지 않음
@@ -82,6 +88,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   return response.json()
+}
+
+// getUserFriendlyMessage는 HTTP 상태 코드에 따라 사용자에게 보여줄 안전한 메시지를 반환한다.
+// 왜 서버 원본 메시지를 쓰지 않는가?
+//   백엔드가 DB 에러/내부 구현 세부를 그대로 반환할 수 있다.
+//   React가 XSS는 막아도, 내부 정보 노출(테이블명, 제약조건명 등)은 막지 못한다.
+//   상태 코드별 고정 메시지로 매핑하여 사용자에게는 행동 가능한 힌트만 준다.
+function getUserFriendlyMessage(status: number, rawMessage: string): string {
+  switch (status) {
+    case 400: return '입력값을 확인해주세요.'
+    case 401: return '이메일 또는 비밀번호가 올바르지 않습니다.'
+    case 403: return '접근 권한이 없습니다.'
+    case 404: return '요청한 정보를 찾을 수 없습니다.'
+    case 409: return rawMessage // 409 Conflict는 "email already exists" 같은 도메인 메시지가 안전
+    case 500: return '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+    default: return '요청 처리 중 오류가 발생했습니다.'
+  }
 }
 
 // apiClient는 HTTP 메서드별 편의 함수를 제공하는 객체이다.

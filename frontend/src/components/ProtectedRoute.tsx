@@ -8,23 +8,26 @@
 //   - 로그인됨: children(감싸진 컴포넌트)을 그대로 렌더링
 //   - 미로그인: /login 페이지로 리다이렉트
 //
+// URL 보존:
+//   useLocation()으로 현재 위치를 읽어 state.from으로 /login에 전달한다.
+//   로그인 성공 후 LoginPage가 state.from을 읽어 원래 목적지로 복귀시킨다.
+//   예: /users/123 접근 → /login 리다이렉트 → 로그인 성공 → /users/123 복귀
+//
 // 사용 예시 (App.tsx):
 //   <Route path="/" element={<ProtectedRoute><UserListPage /></ProtectedRoute>} />
 // =============================================================================
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import type { ReactNode } from 'react'
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth()
+  const location = useLocation()
 
-  // 인증되지 않았으면 로그인 페이지로 리다이렉트
-  // replace: 브라우저 히스토리에 현재 URL을 남기지 않음
-  //          (뒤로가기 시 보호된 페이지로 돌아가지 않도록)
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    // state.from에 현재 URL을 전달하여 로그인 후 복귀할 수 있게 한다.
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // 인증되었으면 자식 컴포넌트를 그대로 렌더링
   return <>{children}</>
 }

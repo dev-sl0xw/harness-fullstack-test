@@ -57,8 +57,35 @@
   gap: 12px;
 }
 
+.submitButton {
+  padding: 10px;
+  background: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* !important 제거: 전역 button 셀렉터를 .submitButton 지역 클래스로 교체했으므로 불필요 */
 .deleteButton {
-  background: #e53e3e !important;
+  padding: 10px;
+  background: #e53e3e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.deleteButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .error {
