@@ -15,6 +15,7 @@ React + Vite フロントエンド、Go(Gin) バックエンド、PostgreSQL を
 | Database | PostgreSQL 16 |
 | Infra | Docker Compose / GitHub Actions CI |
 | AI ハーネス | Claude Code エージェントチーム + Codex CLI (PR レビュー) |
+| インフラ (クラウド、オプション) | AWS CDK (TypeScript) / EC2 + Docker Compose / SSM Parameter Store |
 
 ## プロジェクト構造
 
@@ -47,14 +48,28 @@ harness-fullstack-test/
 │   └── go.mod
 │
 ├── docs/
-│   └── conventions/          ← プロジェクトルール (principles, secrets, 12-factor,
-│                                dependencies, ai-guardrails) — `project-architect` 生成
+│   ├── conventions/          ← プロジェクトルール (principles, secrets, 12-factor,
+│   │                            dependencies, ai-guardrails) — `project-architect` 生成
+│   └── architecture/         ← solution-architect 生成物 (PR 2)
+│       ├── *.mmd + *.md      ← 7 ダイアグラム + 7 ラッパー
+│       └── adr/              ← Architecture Decision Records
+│
+├── infra/aws-cdk/            ← cloud-infra-dev 生成物 (PR 2)
+│   ├── bin/app.ts
+│   ├── lib/*.ts
+│   └── test/
+│
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
 ├── .env.example              ← 環境変数テンプレート (.env にコピー)
 ├── .claude/                  ← Claude Code ハーネス (エージェント + スキル)
 │   ├── agents/               ← エージェント定義
+│   │   ├── solution-architect.md
+│   │   └── cloud-infra-dev.md
 │   └── skills/               ← スキル定義
+│       ├── solution-architecture/
+│       ├── architecture-diagrams/
+│       └── cloud-infra-build/
 └── CLAUDE.md                 ← Claude Code 用ハーネスコンテキスト
 ```
 
@@ -113,6 +128,21 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### AWSデプロイ (オプション)
+
+> AWS アカウントが必要。フリーティア想定コスト: 月額 ~$0.50 (Route 53 ホストゾーンのみ)。
+> フリーティア終了後 (12ヶ月): 月額 ~$25。
+
+ハーネスは `solution-architect` と `cloud-infra-dev` エージェントによりオプションの AWS デプロイをサポートする:
+
+1. クラウドデプロイを依頼: *"このプロジェクトに AWS デプロイを追加して"*
+2. Phase 0-0 が自動トリガー — アーキテクチャ設計・ダイアグラム・ADR 生成
+3. CDK プロジェクトが `infra/aws-cdk/` に生成される
+4. 手動デプロイ: `cd infra/aws-cdk && npm install && npx cdk deploy --all --context env=dev`
+
+アーキテクチャ: 単一 EC2 (t3.micro) + Docker Compose + RDS + S3/CloudFront。
+OIDC ロール作成を含む詳細セットアップは `infra/aws-cdk/README.md` を参照。
 
 ## アプリケーションアーキテクチャ
 
@@ -295,6 +325,8 @@ Claude Code 認証      ← Anthropic 側で別途管理
 | `infra-dev` | Docker Compose, GitHub Actions CI, 環境設定 | 並列 |
 | `qa-engineer` | フロント↔バック 契約検証、ビルド、統合整合性 | モジュール単位 incremental |
 | `code-reviewer` | Codex ベースのセカンドオピニオンコードレビュー | PR 直前 1 回 |
+| `solution-architect` | アーキテクチャ設計・C4ダイアグラム・ADR・decisions.json (Phase 0-0、クラウドキーワードトリガー) | クラウドキーワードトリガー時 |
+| `cloud-infra-dev` | クラウドIaC実装 — CDK/Terraformコード生成・検証 (Phase 2、条件付き) | 条件付き (クラウドのみ) |
 
 ### スキル
 
@@ -307,6 +339,9 @@ Claude Code 認証      ← Anthropic 側で別途管理
 | `infra-setup` | Docker, CI, 設定構成ガイド | `infra-dev` |
 | `qa-verify` | 契約検証方法論 | `qa-engineer` |
 | `codex-review` | Codex CLI 呼び出し + レビュー報告書作成ガイド | `code-reviewer` |
+| `solution-architecture` | 要件整理・アーキテクチャパターン・クラウド/IaC比較・ADRテンプレート | `solution-architect` |
+| `architecture-diagrams` | Mermaid C4/シーケンス/デプロイ/ERダイアグラムパターン・命名規則 | `solution-architect` |
+| `cloud-infra-build` | IaC共通原則 + クラウド+IaC実装ガイド (references/) | `cloud-infra-dev` |
 
 ### ワークフローフェーズ (`fullstack-orchestrator` が管理)
 

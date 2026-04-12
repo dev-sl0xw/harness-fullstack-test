@@ -15,6 +15,7 @@ A fullstack boilerplate combining a React + Vite frontend, a Go (Gin) backend, a
 | Database | PostgreSQL 16 |
 | Infra | Docker Compose / GitHub Actions CI |
 | AI Harness | Claude Code agent team + Codex CLI (PR review) |
+| Infra (Cloud, optional) | AWS CDK (TypeScript) / EC2 + Docker Compose / SSM Parameter Store |
 
 ## Project Structure
 
@@ -47,14 +48,28 @@ harness-fullstack-test/
 │   └── go.mod
 │
 ├── docs/
-│   └── conventions/          ← Project rules (principles, secrets, 12-factor,
-│                                dependencies, ai-guardrails) — by `project-architect`
+│   ├── conventions/          ← Project rules (principles, secrets, 12-factor,
+│   │                            dependencies, ai-guardrails) — by `project-architect`
+│   └── architecture/         ← solution-architect outputs (PR 2)
+│       ├── *.mmd + *.md      ← 7 diagrams + 7 wrappers
+│       └── adr/              ← Architecture Decision Records
+│
+├── infra/aws-cdk/            ← cloud-infra-dev outputs (PR 2)
+│   ├── bin/app.ts
+│   ├── lib/*.ts
+│   └── test/
+│
 ├── docker-compose.yml
 ├── .github/workflows/ci.yml
 ├── .env.example              ← Env var template (copy to .env)
 ├── .claude/                  ← Claude Code harness (agents + skills)
 │   ├── agents/               ← Agent definitions
+│   │   ├── solution-architect.md
+│   │   └── cloud-infra-dev.md
 │   └── skills/               ← Skill definitions
+│       ├── solution-architecture/
+│       ├── architecture-diagrams/
+│       └── cloud-infra-build/
 └── CLAUDE.md                 ← Harness context for Claude Code
 ```
 
@@ -113,6 +128,21 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### AWS Deployment (Optional)
+
+> Requires an AWS account. Free Tier estimated cost: ~$0.50/month (Route 53 hosted zone only).
+> After Free Tier expires (12 months): ~$25/month.
+
+The harness includes optional AWS deployment support via `solution-architect` and `cloud-infra-dev` agents:
+
+1. Request cloud deployment: *"Add AWS deployment to this project"*
+2. Phase 0-0 automatically triggers — architecture design, diagrams, ADR
+3. CDK project generated at `infra/aws-cdk/`
+4. Manual deploy: `cd infra/aws-cdk && npm install && npx cdk deploy --all --context env=dev`
+
+Architecture: Single EC2 (t3.micro) + Docker Compose + RDS + S3/CloudFront.
+See `infra/aws-cdk/README.md` for detailed setup including OIDC role creation.
 
 ## Application Architecture
 
@@ -297,6 +327,8 @@ This project is wired up for [Claude Code](https://claude.com/claude-code) + the
 | `infra-dev` | Docker Compose, GitHub Actions CI, configuration | Parallel |
 | `qa-engineer` | Front ↔ back contract verification, builds, integration sanity | Incremental (per module) |
 | `code-reviewer` | Codex-based second-opinion code review | Per-PR (just before `gh pr create`) |
+| `solution-architect` | Architecture design, C4 diagrams, ADR, decisions.json (Phase 0-0, cloud keyword trigger) | On cloud keyword trigger |
+| `cloud-infra-dev` | Cloud IaC implementation — CDK/Terraform code generation & validation (Phase 2, conditional) | Conditional (cloud only) |
 
 ### Skills
 
@@ -309,6 +341,9 @@ This project is wired up for [Claude Code](https://claude.com/claude-code) + the
 | `infra-setup` | Docker, CI, config guide | `infra-dev` |
 | `qa-verify` | Contract verification methodology | `qa-engineer` |
 | `codex-review` | Codex CLI invocation + review report format | `code-reviewer` |
+| `solution-architecture` | Requirements gathering, architecture patterns, cloud/IaC comparison, ADR template | `solution-architect` |
+| `architecture-diagrams` | Mermaid C4/sequence/deployment/ER diagram patterns & naming conventions | `solution-architect` |
+| `cloud-infra-build` | IaC common principles + cloud+IaC-specific implementation guide (references/) | `cloud-infra-dev` |
 
 ### Workflow Phases (managed by `fullstack-orchestrator`)
 
