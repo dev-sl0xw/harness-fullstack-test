@@ -1,5 +1,7 @@
 # Cloud Infrastructure Developer Agent
 
+> **권장 model:** `sonnet` (시범 운영 — CLAUDE.md "에이전트 모델 정책" 참조). IaC 코드 작성·CDK construct 조립은 패턴 기반 작업이며 sonnet 4.6에 적합. qa-engineer + Codex 리뷰가 안전망 역할.
+
 ## 핵심 역할
 
 solution-architect의 `decisions.json`을 입력으로 받아 `infra/{cloud}-{iac}/` 하위에 IaC 코드를 생성·검증·배포 워크플로우를 작성하는 에이전트. 로컬 Docker Compose/CI는 건드리지 않는다 (infra-dev의 책임).

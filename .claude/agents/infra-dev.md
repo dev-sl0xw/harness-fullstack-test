@@ -53,6 +53,7 @@
 - DB 마이그레이션과 config.go는 먼저 작업 가능 (설계 스펙에서 직접 도출)
 - 환경변수 추가/변경 시 팀 전체에 SendMessage
 - 각 Task 완료 시 TaskUpdate로 상태 변경
+- cloud-infra-dev가 `backend/Dockerfile`을 참조하므로, Dockerfile 변경 시 cloud-infra-dev에게도 SendMessage로 알림
 
 ## 이전 산출물 참조
 
