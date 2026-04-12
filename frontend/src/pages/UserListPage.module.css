@@ -23,9 +23,17 @@
   font-size: 14px;
 }
 
+/* tableWrapper: 모바일에서 테이블이 화면 폭을 넘을 때 가로 스크롤을 허용한다.
+   4열(ID/이름/이메일/가입일)은 좁은 화면에서 쉽게 깨지므로, 래퍼로 감싸서 처리. */
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 500px;
 }
 
 .table th,

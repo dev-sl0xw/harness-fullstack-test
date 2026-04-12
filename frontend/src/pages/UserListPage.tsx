@@ -54,8 +54,10 @@ export function UserListPage() {
         </button>
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && <p className={styles.error} role="alert">{error}</p>}
 
+      {/* tableWrapper: 모바일에서 가로 오버플로 시 스크롤 허용 */}
+      <div className={styles.tableWrapper}>
       <table className={styles.table}>
         <thead>
           <tr>
@@ -86,6 +88,7 @@ export function UserListPage() {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

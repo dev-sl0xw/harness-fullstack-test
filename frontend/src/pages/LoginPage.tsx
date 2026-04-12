@@ -70,7 +70,7 @@ export function LoginPage() {
     <div className={styles.container}>
       <h1>로그인</h1>
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}
         <div className={styles.field}>
           <label htmlFor="email">이메일</label>
           <input
@@ -91,7 +91,7 @@ export function LoginPage() {
             required
           />
         </div>
-        <button type="submit" disabled={loading} className={styles.submitButton}>
+        <button type="submit" disabled={loading} aria-busy={loading} className={styles.submitButton}>
           {loading ? '로그인 중...' : '로그인'}
         </button>
       </form>

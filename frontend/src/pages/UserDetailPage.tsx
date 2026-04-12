@@ -113,7 +113,7 @@ export function UserDetailPage() {
 
       <h1>유저 상세</h1>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && <p className={styles.error} role="alert">{error}</p>}
 
       <div className={styles.info}>
         <p><strong>ID:</strong> {user.id}</p>
