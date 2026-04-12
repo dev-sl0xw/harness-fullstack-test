@@ -59,6 +59,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   // HTTP 상태 코드가 2xx가 아니면 에러로 처리
   if (!response.ok) {
+    // 401 Unauthorized: 토큰이 만료되었거나 무효한 경우.
+    // 왜 즉시 토큰을 지우고 로그인 페이지로 이동하는가?
+    //   토큰이 localStorage에 남아 있으면 ProtectedRoute가 "로그인됨"으로 판단하지만,
+    //   실제 API 호출은 모두 401로 실패하는 "깨진 세션" 상태가 된다.
+    //   토큰을 즉시 제거하고 페이지를 리로드하면 AuthContext가 비인증 상태로 초기화된다.
+    // 단, 로그인 API 자체의 401(잘못된 비밀번호)은 redirect하면 안 되므로
+    // /api/auth/ 경로는 제외한다.
+    if (response.status === 401 && !path.startsWith('/api/auth/')) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+      throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
+    }
+
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || `HTTP ${response.status}`)
   }

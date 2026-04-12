@@ -35,7 +35,7 @@ func Load() *Config {
 		DBUser:     getEnv("DB_USER", "harness"),
 		DBPassword: getEnv("DB_PASSWORD", "harness"),
 		DBName:     getEnv("DB_NAME", "harness"),
-		JWTSecret:  getEnv("JWT_SECRET", "dev-secret-change-in-production"),
+		JWTSecret:  getEnv("JWT_SECRET", "dev-secret-change-in-production!!"),
 		ServerPort: getEnv("SERVER_PORT", "8080"),
 	}
 }

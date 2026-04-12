@@ -24,6 +24,8 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -32,6 +34,10 @@ import (
 	"harness-fullstack-test/internal/model"
 	"harness-fullstack-test/internal/repository"
 )
+
+// jwtSecretMinLength は JWT 시크릿의 최소 바이트 수이다.
+// HMAC-SHA256의 안전한 키 길이는 32바이트 이상이 권장된다.
+const jwtSecretMinLength = 32
 
 // AuthService는 인증 관련 비즈니스 로직을 처리하는 구조체이다.
 type AuthService struct {
@@ -48,11 +54,20 @@ type JWTClaims struct {
 }
 
 // NewAuthService는 AuthService를 생성하는 팩토리 함수이다.
-func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *AuthService {
+// jwtSecret이 공백이거나 32바이트 미만이면 에러를 반환하여 서버 부팅을 차단한다.
+// 왜 부팅 시점에 검증하는가?
+//   운영 환경에서 환경변수 주입이 누락되어도 서버가 조용히 기동되면,
+//   짧거나 예측 가능한 시크릿으로 JWT가 서명되어 인증 체계가 무력화된다.
+//   fail-fast 원칙: 잘못된 설정은 가능한 빨리, 가능한 시끄럽게 실패해야 한다.
+func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) (*AuthService, error) {
+	trimmed := strings.TrimSpace(jwtSecret)
+	if len(trimmed) < jwtSecretMinLength {
+		return nil, fmt.Errorf("jwt secret must be at least %d bytes (got %d)", jwtSecretMinLength, len(trimmed))
+	}
 	return &AuthService{
 		userRepo:  userRepo,
-		jwtSecret: []byte(jwtSecret),
-	}
+		jwtSecret: []byte(trimmed),
+	}, nil
 }
 
 // Register는 새로운 유저를 등록(회원가입)한다.
@@ -95,7 +110,7 @@ func (s *AuthService) Login(req *model.LoginRequest) (string, error) {
 
 	// 2단계: 비밀번호 검증
 	// bcrypt.CompareHashAndPassword: 저장된 해시와 입력된 평문 비밀번호를 비교
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
 	if err != nil {
 		return "", errors.New("invalid email or password")
 	}
