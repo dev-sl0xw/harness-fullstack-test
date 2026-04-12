@@ -67,7 +67,12 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 
 	// Service: 비즈니스 로직 담당
-	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
+	// NewAuthService는 JWT 시크릿이 32바이트 미만이면 에러를 반환한다.
+	// 잘못된 시크릿으로 서버가 기동되는 것을 부팅 시점에서 차단한다 (fail-fast).
+	authService, err := service.NewAuthService(userRepo, cfg.JWTSecret)
+	if err != nil {
+		log.Fatalf("인증 서비스 초기화 실패: %v", err)
+	}
 	userService := service.NewUserService(userRepo)
 
 	// Handler: HTTP 요청 처리 담당

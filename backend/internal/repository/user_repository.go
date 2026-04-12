@@ -45,11 +45,11 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (r *UserRepository) Create(email, hashedPassword, name string) (*model.User, error) {
 	user := &model.User{}
 	err := r.db.QueryRow(
-		`INSERT INTO users (email, password, name, created_at, updated_at)
+		`INSERT INTO users (email, password_hash, name, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING id, email, password, name, created_at, updated_at`,
+		 RETURNING id, email, password_hash, name, created_at, updated_at`,
 		email, hashedPassword, name, time.Now(), time.Now(),
-	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -65,10 +65,10 @@ func (r *UserRepository) Create(email, hashedPassword, name string) (*model.User
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	user := &model.User{}
 	err := r.db.QueryRow(
-		`SELECT id, email, password, name, created_at, updated_at
+		`SELECT id, email, password_hash, name, created_at, updated_at
 		 FROM users WHERE email = $1`,
 		email,
-	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +80,10 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 func (r *UserRepository) FindByID(id int) (*model.User, error) {
 	user := &model.User{}
 	err := r.db.QueryRow(
-		`SELECT id, email, password, name, created_at, updated_at
+		`SELECT id, email, password_hash, name, created_at, updated_at
 		 FROM users WHERE id = $1`,
 		id,
-	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (r *UserRepository) FindByID(id int) (*model.User, error) {
 // 프로덕션에서는 페이지네이션이 필요하지만, MVP에서는 전체 조회로 충분하다.
 func (r *UserRepository) FindAll() ([]model.User, error) {
 	rows, err := r.db.Query(
-		`SELECT id, email, password, name, created_at, updated_at
+		`SELECT id, email, password_hash, name, created_at, updated_at
 		 FROM users ORDER BY id`,
 	)
 	if err != nil {
@@ -106,7 +106,7 @@ func (r *UserRepository) FindAll() ([]model.User, error) {
 	var users []model.User
 	for rows.Next() {
 		var user model.User
-		if err := rows.Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.CreatedAt, &user.UpdatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, user)
@@ -122,9 +122,9 @@ func (r *UserRepository) Update(id int, email, name string) (*model.User, error)
 	err := r.db.QueryRow(
 		`UPDATE users SET email = $1, name = $2, updated_at = $3
 		 WHERE id = $4
-		 RETURNING id, email, password, name, created_at, updated_at`,
+		 RETURNING id, email, password_hash, name, created_at, updated_at`,
 		email, name, time.Now(), id,
-	).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

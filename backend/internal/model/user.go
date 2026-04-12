@@ -24,7 +24,7 @@ import "time"
 type User struct {
 	ID        int       `json:"id"`
 	Email     string    `json:"email"`
-	Password  string    `json:"-"`           // JSON 응답에서 제외. 비밀번호 노출 방지.
+	PasswordHash string `json:"-"` // bcrypt 해시값. 컬럼명 password_hash와 일치. JSON 응답에서 제외.
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
