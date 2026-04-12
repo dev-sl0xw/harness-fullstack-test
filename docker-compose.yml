@@ -51,7 +51,7 @@ services:
       DB_USER: harness
       DB_PASSWORD: harness
       DB_NAME: harness
-      JWT_SECRET: dev-secret-change-in-production
+      JWT_SECRET: dev-secret-change-in-production!!
 
   # ---------------------------------------------------------------------------
   # React 프론트엔드

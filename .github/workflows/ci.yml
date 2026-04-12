@@ -44,12 +44,18 @@ on:
 # 만약 v6 액션이 깨지면 일시적으로 v4/v5로 되돌리고 환경변수 강제 방식으로
 # 우회할 수 있다 (이전 PR 이력 참조).
 
+# 최소 권한 원칙: CI는 checkout+빌드만 하므로 contents: read만 필요.
+# 기본값은 너무 넓어 공급망 공격면을 불필요하게 넓힌다.
+permissions:
+  contents: read
+
 jobs:
   # ---------------------------------------------------------------------------
   # 백엔드 (Go) 테스트 + 빌드
   # ---------------------------------------------------------------------------
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: backend
@@ -95,6 +101,7 @@ jobs:
   # ---------------------------------------------------------------------------
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: frontend

@@ -47,14 +47,16 @@ func AuthMiddleware(authService *service.AuthService) gin.HandlerFunc {
 			return
 		}
 
-		// "Bearer " 접두사를 제거하여 순수 토큰 문자열만 추출
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
+		// "Bearer <token>" 형식에서 토큰을 추출한다.
+		// strings.Cut은 Go 1.18+에서 도입된 함수로, SplitN보다 의도가 명확하다.
+		// 빈 토큰("Bearer "만 있는 경우)도 형식 오류로 처리한다.
+		scheme, tokenString, found := strings.Cut(authHeader, " ")
+		tokenString = strings.TrimSpace(tokenString)
+		if !found || scheme != "Bearer" || tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
 			c.Abort()
 			return
 		}
-		tokenString := parts[1]
 
 		// 2단계: 토큰 검증
 		claims, err := authService.ValidateToken(tokenString)
