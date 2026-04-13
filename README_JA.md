@@ -50,11 +50,11 @@ harness-fullstack-test/
 ├── docs/
 │   ├── conventions/          ← プロジェクトルール (principles, secrets, 12-factor,
 │   │                            dependencies, ai-guardrails) — `project-architect` 生成
-│   └── architecture/         ← solution-architect 生成物 (PR 2)
+│   └── architecture/         ← solution-architect 生成物
 │       ├── *.mmd + *.md      ← 7 ダイアグラム + 7 ラッパー
 │       └── adr/              ← Architecture Decision Records
 │
-├── infra/aws-cdk/            ← cloud-infra-dev 生成物 (PR 2)
+├── infra/aws-cdk/            ← cloud-infra-dev 生成物
 │   ├── bin/app.ts
 │   ├── lib/*.ts
 │   └── test/
