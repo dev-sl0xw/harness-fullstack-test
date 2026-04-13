@@ -80,16 +80,19 @@ export class Ec2AppStack extends cdk.Stack {
       repositoryName: resourceName(env, 'backend'),
       lifecycleRules: [
         {
-          description: '최근 10개 이미지만 유지 (스토리지 절감)',
-          maxImageCount: 10,
-          rulePriority: 1,
-          tagStatus: ecr.TagStatus.ANY,
-        },
-        {
+          // TagStatus.UNTAGGED: 먼저 낮은 우선순위 번호(1)로 설정
+          // ECR 규칙: TagStatus.ANY는 가장 높은 우선순위 번호를 가져야 함
           description: 'untagged 이미지 7일 후 삭제',
           maxImageAge: cdk.Duration.days(7),
-          rulePriority: 2,
+          rulePriority: 1,
           tagStatus: ecr.TagStatus.UNTAGGED,
+        },
+        {
+          // TagStatus.ANY: 가장 높은 우선순위 번호(2)를 가져야 함
+          description: '최근 10개 이미지만 유지 (스토리지 절감)',
+          maxImageCount: 10,
+          rulePriority: 2,
+          tagStatus: ecr.TagStatus.ANY,
         },
       ],
       imageScanOnPush: true,
