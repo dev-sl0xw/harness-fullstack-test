@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0",
+  "created_at": "2026-04-12T00:00:00Z",
+  "updated_at": "2026-04-12T00:00:00Z",
+
+  "project": {
+    "name": "harness-fullstack-test",
+    "owner": "dev-sl0xw",
+    "stack": {
+      "backend": "go/gin",
+      "frontend": "react/vite/ts",
+      "database": "postgresql"
+    }
+  },
+
+  "non_functional": {
+    "allowed_regions": ["us-east-1", "ap-northeast-1", "ap-northeast-3"],
+    "region_roles": {
+      "primary_workload": "ap-northeast-1",
+      "backup_vault": null,
+      "global_services": "us-east-1"
+    },
+    "traffic_scale": "mvp",
+    "cost_target": "aws-free-tier",
+    "availability_target_current": "best-effort",
+    "availability_target_future": "99.9",
+    "compliance": []
+  },
+
+  "cloud": {
+    "provider": "aws",
+    "accounts": { "dev": "TBD", "stg": "TBD", "prod": "TBD" }
+  },
+
+  "iac": {
+    "tool": "cdk",
+    "language": "typescript",
+    "directory": "infra/aws-cdk"
+  },
+
+  "compute": {
+    "backend": {
+      "type": "ec2-docker-compose",
+      "image_registry": "ecr",
+      "per_environment": {
+        "dev":  {"instance_type": "t3.micro", "count": 1, "ami": "al2023", "user_data_version": 1},
+        "stg":  {"instance_type": "t3.micro", "count": 1, "ami": "al2023", "user_data_version": 1},
+        "prod": {"instance_type": "t3.micro", "count": 1, "ami": "al2023", "user_data_version": 1}
+      },
+      "runtime": {
+        "docker_version": "24.x",
+        "docker_compose_plugin": "v2",
+        "reverse_proxy": "caddy",
+        "ssm_agent": true
+      }
+    },
+    "frontend": {
+      "type": "s3-cloudfront"
+    }
+  },
+
+  "data": {
+    "primary": {
+      "engine": "postgresql",
+      "version": "16",
+      "per_environment": {
+        "dev":  {"deploy_type": "single-instance", "instance_class": "db.t3.micro", "multi_az": false, "reader_replicas": 0, "storage_gb": 20, "backup_retention_days": 1},
+        "stg":  {"deploy_type": "single-instance", "instance_class": "db.t3.micro", "multi_az": false, "reader_replicas": 0, "storage_gb": 20, "backup_retention_days": 7},
+        "prod": {"deploy_type": "single-instance", "instance_class": "db.t3.micro", "multi_az": false, "reader_replicas": 0, "storage_gb": 20, "backup_retention_days": 7}
+      },
+      "endpoints": {
+        "writer_env_var": "DATABASE_URL",
+        "reader_env_var": null
+      }
+    }
+  },
+
+  "networking": {
+    "vpc": {
+      "cidr_strategy": "cdk-default",
+      "public_subnets": 1,
+      "private_subnets": 0,
+      "isolated_subnets": 1,
+      "nat_gateway": { "dev": "none", "stg": "none", "prod": "none" },
+      "load_balancer": false
+    }
+  },
+
+  "secrets": {
+    "store": "ssm-parameter-store",
+    "tier": "standard",
+    "per_environment": {
+      "dev":  { "rotation": false },
+      "stg":  { "rotation": false },
+      "prod": { "rotation": false }
+    }
+  },
+
+  "observability": {
+    "per_environment": {
+      "dev":  { "logs": "cloudwatch-logs", "metrics": "cloudwatch-agent", "traces": null, "dashboards": false, "alarms": false },
+      "stg":  { "logs": "cloudwatch-logs", "metrics": "cloudwatch-agent", "traces": null, "dashboards": false, "alarms": false },
+      "prod": { "logs": "cloudwatch-logs", "metrics": "cloudwatch-agent", "traces": null, "dashboards": false, "alarms": false }
+    }
+  },
+
+  "backup": {
+    "service": "rds-automated-backup",
+    "per_environment": {
+      "dev":  { "enabled": false, "retention_days": 1 },
+      "stg":  { "enabled": true,  "retention_days": 7 },
+      "prod": { "enabled": true,  "retention_days": 7 }
+    }
+  },
+
+  "cdn": {
+    "service": "cloudfront",
+    "per_environment": {
+      "dev":  { "cache_policy": "no-cache", "waf": false, "price_class": "PriceClass_100" },
+      "stg":  { "cache_policy": "default",  "waf": false, "price_class": "PriceClass_100" },
+      "prod": { "cache_policy": "default",  "waf": false, "price_class": "PriceClass_100" }
+    }
+  },
+
+  "tls": {
+    "service": "lets-encrypt-on-ec2",
+    "per_environment": {
+      "dev":  { "cert": null },
+      "stg":  { "cert": "lets-encrypt", "renewal": "auto-caddy" },
+      "prod": { "cert": "lets-encrypt", "renewal": "auto-caddy" }
+    }
+  },
+
+  "dns": {
+    "managed_service": "route53",
+    "hosted_zone_cost_usd_per_month": 0.50,
+    "hosted_zone": { "dev": null, "stg": "TBD", "prod": "TBD" }
+  },
+
+  "ecr": {
+    "lifecycle_policy": { "keep_last": 10, "untagged_expire_days": 7 }
+  },
+
+  "deployment": {
+    "strategy": {
+      "per_environment": {
+        "dev":  { "type": "restart", "description": "EC2에서 docker compose pull && up -d (in-place)" },
+        "stg":  { "type": "restart", "description": "동일" },
+        "prod": { "type": "restart", "description": "brief downtime 허용. Stage 2에서 ASG instance refresh로 전환" }
+      }
+    }
+  },
+
+  "cicd": {
+    "ci": "github-actions",
+    "cd": {
+      "method": "github-actions-oidc",
+      "apply_trigger": {
+        "dev":  "manual-workflow-dispatch",
+        "stg":  "manual-approval",
+        "prod": "manual-approval-with-review"
+      }
+    }
+  },
+
+  "cloud_infra_dev": {
+    "activate": true,
+    "skill_refs": ["aws-cdk"],
+    "output_directory": "infra/aws-cdk"
+  },
+
+  "architecture_docs": {
+    "directory": "docs/architecture",
+    "diagrams": [
+      "context.mmd", "container.mmd", "component-frontend.mmd",
+      "component-backend.mmd", "deployment-aws.mmd",
+      "sequence-auth.mmd", "er-schema.mmd"
+    ],
+    "wrappers_format": {
+      "required_sections": ["설명", "코드 매핑", "다이어그램", "설계 의도", "학습 포인트"]
+    },
+    "adrs": [
+      "0001-cloud-aws.md", "0002-iac-cdk.md", "0003-compute-ec2-docker-compose.md",
+      "0004-data-rds-progressive.md", "0005-secrets-ssm-parameter-store.md",
+      "0006-db-evolution-path.md", "0007-region-strategy.md",
+      "0008-db-schema-migration-strategy.md", "0009-deployment-strategy.md",
+      "0010-schema-migration-compatibility.md", "0011-single-ec2-availability.md"
+    ]
+  },
+
+  "conventions_updates_requested": [
+    "docs/conventions/secrets.md: SSM Parameter Store 주입 방식 + SecureString 필수 전환 매뉴얼",
+    "docs/conventions/12-factor.md: EC2 User Data → docker compose env_file 주입 흐름",
+    "docs/conventions/dependencies.md: CDK 버전 핀 정책 (aws-cdk-lib ^2.150.0)",
+    "docs/conventions/principles.md: 리전 화이트리스트 가드 패턴 + DB engine 무관 스키마"
+  ],
+
+  "cost_estimate": {
+    "free_tier_monthly_usd": 0.50,
+    "post_free_tier_monthly_usd": 25,
+    "free_tier_duration_months": 12,
+    "line_items": {
+      "ec2_t3_micro": "free 12mo → ~8",
+      "rds_t3_micro": "free 12mo → ~15",
+      "route53_hosted_zone": "0.50",
+      "s3_cloudfront": "within free tier",
+      "ssm_parameter_store": "0 (standard tier)",
+      "cloudwatch_logs": "within free tier (<5GB)",
+      "ecr_private": "within free tier (<500MB)"
+    }
+  }
+}
