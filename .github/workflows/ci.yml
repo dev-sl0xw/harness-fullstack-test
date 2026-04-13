@@ -145,6 +145,9 @@ jobs:
           node-version: '22'
 
       # Mermaid CLI로 각 .mmd 파일을 SVG로 변환하여 문법 검증
+      # puppeteerConfigFile: GitHub Actions ubuntu-latest 러너에서는 AppArmor가
+      # unprivileged user namespaces를 차단하여 Chrome sandbox가 동작하지 않는다.
+      # --no-sandbox 플래그를 Puppeteer에 전달해야 headless Chrome이 기동된다.
       - name: Validate Mermaid diagrams
         run: |
           set -e
@@ -152,9 +155,10 @@ jobs:
             echo "No .mmd files found — skipping validation"
             exit 0
           fi
+          echo '{"args":["--no-sandbox"]}' > /tmp/puppeteer-config.json
           for mmd in docs/architecture/*.mmd; do
             echo "Validating: $mmd"
-            npx -y @mermaid-js/mermaid-cli -i "$mmd" -o /tmp/$(basename "$mmd" .mmd).svg
+            npx -y @mermaid-js/mermaid-cli -p /tmp/puppeteer-config.json -i "$mmd" -o /tmp/$(basename "$mmd" .mmd).svg
           done
 
       # 최소 7개 다이어그램 존재 확인
