@@ -356,3 +356,62 @@ service-account*.json
 - [ai-guardrails.md](./ai-guardrails.md) — AI 에이전트의 read/write/exec 금지 패턴 전체
 - `/.env.example` — 이 프로젝트의 실제 환경변수 키 목록
 - `/.gitignore` — 민감 파일 차단 패턴의 실제 구현
+
+---
+
+## 5. AWS 환경에서의 비밀 관리 — SSM Parameter Store
+
+> ADR: [0005-secrets-ssm-parameter-store](../architecture/adr/0005-secrets-ssm-parameter-store.md)
+
+### 5.1 왜 SSM Parameter Store인가
+
+AWS에서 비밀을 관리하는 주요 서비스는 Secrets Manager와 SSM Parameter Store이다:
+
+| 비교 | Secrets Manager | SSM Parameter Store (Standard) |
+|------|----------------|-------------------------------|
+| 비용 | $0.40/secret/월 | **무료** |
+| 자동 rotation | 지원 | 미지원 |
+| CDK SecureString 직접 생성 | 가능 | **불가** (String만 가능) |
+| 암호화 | KMS 기본 | KMS 선택적 (SecureString) |
+
+Free Tier 프로젝트에서는 SSM Parameter Store Standard Tier를 선택한다.
+
+### 5.2 파라미터 경로 규칙
+
+```
+/hft/{env}/{KEY}
+```
+
+예시:
+- `/hft/dev/JWT_SECRET`
+- `/hft/prod/DATABASE_URL`
+- `/hft/stg/DB_PASSWORD`
+
+### 5.3 CDK에서의 초기 생성 → 수동 SecureString 전환
+
+CDK는 `ssm.StringParameter`(평문)만 생성할 수 있다. 보안상 중요한 파라미터는 다음 절차로 수동 전환한다:
+
+1. CDK가 String placeholder 생성 (`REPLACE_ME` 값)
+2. AWS 콘솔 또는 CLI에서 SecureString으로 재생성:
+   ```bash
+   aws ssm put-parameter \
+     --name "/hft/prod/JWT_SECRET" \
+     --value "실제시크릿값" \
+     --type SecureString \
+     --overwrite
+   ```
+3. CDK 코드에서는 `valueFromLookup`으로 참조하므로 타입 변환 영향 없음
+
+### 5.4 IAM 정책
+
+EC2 Instance Profile에 다음 정책을 부여한다:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": ["ssm:GetParameter", "ssm:GetParametersByPath"],
+  "Resource": "arn:aws:ssm:ap-northeast-1:*:parameter/hft/${env}/*"
+}
+```
+
+환경별로 격리하여 dev 인스턴스가 prod 시크릿에 접근하지 못하게 한다.

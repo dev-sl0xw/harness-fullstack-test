@@ -249,3 +249,30 @@ go mod tidy
 - [12-factor.md](./12-factor.md) — Factor II(Dependencies)의 상위 원칙.
 - [ai-guardrails.md](./ai-guardrails.md) — 패키지 설치 관련 exec 제한.
 - [secrets.md](./secrets.md) — 의존성 설치 중 `.npmrc`의 auth 토큰이 노출될 수 있는 경로.
+
+---
+
+## 5. CDK 의존성 핀 정책
+
+> ADR: [0002-iac-cdk](../architecture/adr/0002-iac-cdk.md)
+
+### 5.1 왜 CDK 버전을 핀하는가
+
+`aws-cdk-lib`는 한 달에 여러 번 릴리스되며, minor 버전에서도 L2 construct의 기본값이 변경되는 경우가 있다. 인프라 코드에서 "로컬에서는 되는데 CI에서 안 됨" 사고는 의존성 drift에서 비롯되므로:
+
+- `aws-cdk-lib`: **caret range** (`^2.150.0`) — patch/minor 자동, major 수동
+- `aws-cdk` (CLI): devDependencies에 같은 range로 고정
+- `constructs`: `^10.0.0` (CDK가 요구하는 최소)
+
+### 5.2 CDK 업데이트 절차
+
+1. `npm outdated`로 새 버전 확인
+2. `package.json` 수정 → `npm install`
+3. `npm run synth:all`로 전 환경 synth 성공 확인
+4. `npm test`로 snapshot test 실행
+5. snapshot 변경이 있으면 `npm test -- -u`로 갱신 후 diff 확인
+6. PR에 CDK 버전 변경 이유 명시
+
+### 5.3 lock 파일 관리
+
+`infra/aws-cdk/package-lock.json`도 반드시 커밋한다. CI에서 `npm ci`를 사용하므로 lock 파일 없이는 빌드가 실패한다.
