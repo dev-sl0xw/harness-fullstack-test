@@ -1,0 +1,31 @@
+C4Container
+  title harness-fullstack-test — Container Diagram (L2)
+
+  Person(user, "사용자")
+
+  System_Boundary(hft, "harness-fullstack-test") {
+    Container(spa, "SPA (React)", "TypeScript, Vite", "로그인/회원가입/유저 관리 UI")
+    Container(api, "API Server (Go)", "Gin Framework", "REST API + JWT 인증")
+    ContainerDb(db, "PostgreSQL 16", "관계형 DB", "users 테이블")
+    Container(caddy, "Caddy", "Reverse Proxy", "TLS 종료 + Let's Encrypt 자동 갱신")
+  }
+
+  System_Boundary(aws, "AWS Cloud") {
+    Container(cloudfront, "CloudFront", "CDN", "SPA 정적 파일 배포")
+    Container(s3, "S3 Bucket", "Object Storage", "SPA 빌드 결과물 저장")
+    Container(ec2, "EC2 (t3.micro)", "Docker Compose", "API + Caddy + CloudWatch Agent")
+    ContainerDb(rds, "RDS PostgreSQL", "Managed DB", "users 테이블 (prod)")
+    Container(ecr, "ECR", "Container Registry", "Docker 이미지 저장")
+    Container(ssm, "SSM Parameter Store", "Secret Management", "JWT_SECRET, DB 자격증명")
+    Container(r53, "Route 53", "DNS", "도메인 → EC2 Elastic IP 매핑")
+  }
+
+  Rel(user, cloudfront, "HTTPS", "SPA 접근")
+  Rel(user, caddy, "HTTPS", "API 접근")
+  Rel(cloudfront, s3, "OAC", "정적 파일")
+  Rel(caddy, api, "HTTP :8080", "Reverse Proxy")
+  Rel(api, db, "TCP :5432", "SQL 쿼리 (로컬)")
+  Rel(api, rds, "TCP :5432", "SQL 쿼리 (AWS)")
+  Rel(ec2, ecr, "docker pull", "이미지 가져오기")
+  Rel(ec2, ssm, "GetParameter", "시크릿 주입")
+  Rel(r53, ec2, "A Record", "Elastic IP")

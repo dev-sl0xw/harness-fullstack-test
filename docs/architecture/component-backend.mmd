@@ -1,0 +1,25 @@
+C4Component
+  title harness-fullstack-test — Backend Component (L3)
+
+  Container_Boundary(api, "API Server (Go / Gin)") {
+    Component(main_go, "main.go", "Entrypoint", "서버 초기화 + 라우트 등록")
+    Component(config, "config.go", "Config", "환경변수 파싱 (DATABASE_URL, JWT_SECRET 등)")
+    Component(auth_handler, "auth_handler.go", "Handler", "POST /api/login, POST /api/register")
+    Component(user_handler, "user_handler.go", "Handler", "GET/PUT/DELETE /api/users, /api/users/:id")
+    Component(auth_mw, "auth_middleware.go", "Middleware", "JWT 검증 + gin.Context에 userID 주입")
+    Component(auth_svc, "auth_service.go", "Service", "비밀번호 해싱(bcrypt) + JWT 발급(golang-jwt)")
+    Component(user_svc, "user_service.go", "Service", "유저 CRUD 비즈니스 로직")
+    Component(errors_svc, "errors.go", "Service", "도메인 에러 정의 (ErrNotFound, ErrDuplicate 등)")
+    Component(user_repo, "user_repository.go", "Repository", "SQL 쿼리 (lib/pq)")
+    Component(user_model, "user.go", "Model", "User 구조체 정의")
+  }
+
+  Rel(main_go, config, "loads", "환경변수")
+  Rel(main_go, auth_handler, "registers", "/api/login, /api/register")
+  Rel(main_go, user_handler, "registers", "/api/users")
+  Rel(main_go, auth_mw, "uses", "인증 미들웨어")
+  Rel(auth_handler, auth_svc, "calls", "Login, Register")
+  Rel(user_handler, user_svc, "calls", "GetAll, GetByID, Update, Delete")
+  Rel(auth_svc, user_repo, "calls", "Create, GetByEmail")
+  Rel(user_svc, user_repo, "calls", "CRUD 쿼리")
+  Rel(user_repo, user_model, "uses", "User 구조체")

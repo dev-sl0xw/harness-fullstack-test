@@ -326,3 +326,36 @@ terraform/
 - [dependencies.md](./dependencies.md) — Factor II(Dependencies)의 상세 규칙.
 - `/backend/internal/config/config.go` — Factor III의 실제 구현.
 - `/docker-compose.yml` — Factor X(dev/prod parity) 실천.
+
+---
+
+## 6. AWS 배포 시 환경변수 주입 — EC2 User Data 흐름
+
+> ADR: [0003-compute-ec2-docker-compose](../architecture/adr/0003-compute-ec2-docker-compose.md)
+
+### 6.1 로컬 vs AWS 환경변수 주입 경로
+
+| 항목 | 로컬 (Docker Compose) | AWS (EC2 + Docker Compose) |
+|------|---------------------|---------------------------|
+| 비밀 저장소 | `.env` 파일 | SSM Parameter Store |
+| 주입 시점 | `docker compose up` 시 자동 | EC2 User Data 스크립트 |
+| 주입 방법 | `env_file: .env` | SSM → `.env` 파일 생성 → `env_file` |
+| 비밀 노출 위험 | `.env` 파일이 git에 올라갈 위험 | SSM에 암호화 저장, EC2 내에서만 복호화 |
+
+### 6.2 User Data 환경변수 주입 흐름
+
+```
+EC2 부팅
+  → User Data 스크립트 실행
+    → aws ssm get-parameters-by-path --path "/hft/${ENV}/"
+    → 결과를 /opt/hft/.env 로 변환
+    → docker compose --env-file /opt/hft/.env up -d
+```
+
+### 6.3 12-Factor Factor III 준수
+
+Factor III(Config)는 "설정을 환경변수에 저장하라"고 한다. AWS 배포에서도 이 원칙을 유지한다:
+
+1. **코드에 설정을 하드코딩하지 않는다** → `config.go`가 `os.Getenv()`로 읽음 (기존 그대로)
+2. **환경별로 다른 설정** → SSM 경로에 환경이 포함됨 (`/hft/dev/*` vs `/hft/prod/*`)
+3. **비밀과 비-비밀 분리** → 비-비밀(PORT, LOG_LEVEL)은 CDK에서 직접 `.env`에 기록, 비밀(JWT_SECRET, DB_PASSWORD)은 SSM SecureString에서 가져옴

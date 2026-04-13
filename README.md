@@ -50,11 +50,11 @@ harness-fullstack-test/
 ├── docs/
 │   ├── conventions/          ← Project rules (principles, secrets, 12-factor,
 │   │                            dependencies, ai-guardrails) — by `project-architect`
-│   └── architecture/         ← solution-architect outputs (PR 2)
+│   └── architecture/         ← solution-architect outputs
 │       ├── *.mmd + *.md      ← 7 diagrams + 7 wrappers
 │       └── adr/              ← Architecture Decision Records
 │
-├── infra/aws-cdk/            ← cloud-infra-dev outputs (PR 2)
+├── infra/aws-cdk/            ← cloud-infra-dev outputs
 │   ├── bin/app.ts
 │   ├── lib/*.ts
 │   └── test/

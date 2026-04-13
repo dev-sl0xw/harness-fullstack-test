@@ -1,0 +1,25 @@
+C4Component
+  title harness-fullstack-test — Frontend Component (L3)
+
+  Container_Boundary(spa, "SPA (React + TypeScript)") {
+    Component(main, "main.tsx", "Entrypoint", "React DOM 렌더링 시작점")
+    Component(app, "App.tsx", "Router", "React Router v6 라우트 정의")
+    Component(auth_ctx, "AuthContext.tsx", "Context", "JWT 토큰 관리 + 로그인 상태")
+    Component(api_client, "client.ts", "API Client", "fetch wrapper + Authorization 헤더 자동 첨부")
+    Component(protected, "ProtectedRoute.tsx", "Guard", "미인증 시 /login 리다이렉트")
+    Component(login, "LoginPage.tsx", "Page", "로그인 폼")
+    Component(register, "RegisterPage.tsx", "Page", "회원가입 폼")
+    Component(user_list, "UserListPage.tsx", "Page", "유저 목록 조회")
+    Component(user_detail, "UserDetailPage.tsx", "Page", "유저 상세/수정/삭제")
+    Component(types, "types.ts", "Types", "User, AuthResponse 등 타입 정의")
+  }
+
+  Rel(main, app, "renders")
+  Rel(app, auth_ctx, "wraps", "AuthProvider")
+  Rel(app, protected, "uses", "인증 필요 라우트 보호")
+  Rel(protected, auth_ctx, "reads", "isAuthenticated 확인")
+  Rel(login, auth_ctx, "calls", "login()")
+  Rel(register, api_client, "calls", "POST /api/register")
+  Rel(user_list, api_client, "calls", "GET /api/users")
+  Rel(user_detail, api_client, "calls", "GET/PUT/DELETE /api/users/:id")
+  Rel(api_client, auth_ctx, "reads", "JWT token")

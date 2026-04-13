@@ -3,6 +3,8 @@ backend/tmp/
 backend/vendor/
 backend/server
 bin/
+# CDK entrypoint는 bin/에 있으므로 예외 처리
+!infra/aws-cdk/bin/
 
 # Node
 frontend/node_modules/
