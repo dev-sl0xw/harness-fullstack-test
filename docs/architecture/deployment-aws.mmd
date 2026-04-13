@@ -1,0 +1,64 @@
+flowchart TB
+  subgraph internet["인터넷"]
+    user["사용자 브라우저"]
+  end
+
+  subgraph aws["AWS Cloud (ap-northeast-1)"]
+    subgraph r53_zone["Route 53"]
+      r53["A Record<br/>api.example.com → EIP"]
+    end
+
+    subgraph cf_layer["CloudFront"]
+      cf["CloudFront Distribution<br/>PriceClass_100"]
+    end
+
+    subgraph s3_layer["S3"]
+      s3["S3 Bucket (Private)<br/>React SPA 빌드 결과물<br/>OAC 접근 제한"]
+    end
+
+    subgraph vpc["VPC (cdk-default CIDR)"]
+      subgraph pub_subnet["Public Subnet"]
+        eip["Elastic IP"]
+        subgraph ec2["EC2 (t3.micro, AL2023)"]
+          caddy["Caddy<br/>TLS + Reverse Proxy<br/>Let's Encrypt 자동 갱신"]
+          backend_container["Backend Container<br/>Go/Gin API :8080"]
+          cw_agent["CloudWatch Agent<br/>로그 수집"]
+        end
+      end
+
+      subgraph iso_subnet["Isolated Subnet"]
+        rds["RDS PostgreSQL 16<br/>db.t3.micro<br/>Single Instance<br/>20GB gp2"]
+      end
+    end
+
+    subgraph ecr_layer["ECR"]
+      ecr["Private Repository<br/>lifecycle: keep 10"]
+    end
+
+    subgraph ssm_layer["SSM Parameter Store"]
+      ssm["Standard Tier<br/>/hft/{env}/JWT_SECRET<br/>/hft/{env}/DB_*"]
+    end
+
+    subgraph cw_layer["CloudWatch"]
+      cw_logs["Log Groups<br/>/hft/{env}/backend<br/>/hft/{env}/caddy"]
+    end
+  end
+
+  user -->|"HTTPS (SPA)"| cf
+  user -->|"HTTPS (API)"| r53
+  r53 --> eip
+  eip --> caddy
+  cf -->|"OAC"| s3
+  caddy -->|"HTTP :8080"| backend_container
+  backend_container -->|"TCP :5432"| rds
+  ec2 -->|"docker pull"| ecr
+  ec2 -->|"GetParameter"| ssm
+  cw_agent -->|"PutLogEvents"| cw_logs
+
+  classDef awsService fill:#FF9900,color:#000,stroke:#232F3E
+  classDef container fill:#0073BB,color:#fff,stroke:#232F3E
+  classDef user fill:#08427B,color:#fff
+
+  class r53,cf,s3,ecr,ssm,cw_logs awsService
+  class caddy,backend_container,cw_agent container
+  class user user

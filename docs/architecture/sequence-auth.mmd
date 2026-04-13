@@ -1,0 +1,60 @@
+sequenceDiagram
+  autonumber
+  participant U as 사용자 브라우저
+  participant SPA as React SPA
+  participant Caddy as Caddy (Reverse Proxy)
+  participant API as Go API Server
+  participant MW as Auth Middleware
+  participant AuthSvc as AuthService
+  participant Repo as UserRepository
+  participant DB as PostgreSQL
+
+  Note over U,DB: === 회원가입 (Register) ===
+  U->>SPA: 회원가입 폼 입력
+  SPA->>Caddy: POST /api/register {name, email, password}
+  Caddy->>API: HTTP :8080 (TLS 종료됨)
+  API->>AuthSvc: Register(name, email, password)
+  AuthSvc->>AuthSvc: bcrypt.GenerateFromPassword(password)
+  AuthSvc->>Repo: Create(user)
+  Repo->>DB: INSERT INTO users (name, email, password_hash)
+  DB-->>Repo: user row
+  Repo-->>AuthSvc: User
+  AuthSvc->>AuthSvc: jwt.NewWithClaims(sub=user.id, exp=24h)
+  AuthSvc-->>API: {token, user}
+  API-->>SPA: 201 {token, user}
+  SPA->>SPA: localStorage.setItem("token", token)
+
+  Note over U,DB: === 로그인 (Login) ===
+  U->>SPA: 로그인 폼 입력
+  SPA->>Caddy: POST /api/login {email, password}
+  Caddy->>API: HTTP :8080
+  API->>AuthSvc: Login(email, password)
+  AuthSvc->>Repo: GetByEmail(email)
+  Repo->>DB: SELECT * FROM users WHERE email = $1
+  DB-->>Repo: user row
+  Repo-->>AuthSvc: User
+  AuthSvc->>AuthSvc: bcrypt.CompareHashAndPassword(hash, password)
+  AuthSvc->>AuthSvc: jwt.NewWithClaims(sub=user.id, exp=24h)
+  AuthSvc-->>API: {token, user}
+  API-->>SPA: 200 {token, user}
+  SPA->>SPA: localStorage.setItem("token", token)
+
+  Note over U,DB: === 인증된 API 호출 (Authenticated Request) ===
+  U->>SPA: 유저 목록 페이지 접근
+  SPA->>Caddy: GET /api/users (Authorization: Bearer <token>)
+  Caddy->>API: HTTP :8080
+  API->>MW: JWT 검증
+  MW->>MW: jwt.Parse(token, secret)
+  alt 토큰 유효
+    MW->>MW: c.Set("userID", claims.sub)
+    MW->>API: c.Next()
+    API->>Repo: GetAll()
+    Repo->>DB: SELECT * FROM users
+    DB-->>Repo: []User
+    Repo-->>API: []User
+    API-->>SPA: 200 [{id, name, email, created_at}]
+  else 토큰 무효/만료
+    MW-->>SPA: 401 {"error": "unauthorized"}
+    SPA->>SPA: localStorage.removeItem("token")
+    SPA->>U: /login 리다이렉트
+  end
