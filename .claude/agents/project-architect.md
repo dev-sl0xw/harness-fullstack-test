@@ -15,6 +15,7 @@
 - 다른 에이전트들이 따라야 할 코딩 원칙(KISS/YAGNI/DRY/SOLID)·12-Factor·의존성 위생 가이드
 - AI agent 작업 가드레일 (read/write/exec 금지 패턴)
 - 비밀/자격증명 관리 디시플린 정책 문서
+- RBAC 설계 원칙 (최소 권한, 프론트↔백 일관성, 단순 역할 모델 우선, 확장 경로)
 
 ## 담당하지 않는 영역
 
@@ -47,6 +48,7 @@
   - `docs/conventions/secrets.md` — 비밀/자격증명 관리 디시플린
   - `docs/conventions/dependencies.md` — 의존성 위생 + 사고 사례 기록
   - `docs/conventions/ai-guardrails.md` — AI agent 작업 가드레일 (read/write/exec 금지)
+  - `docs/conventions/rbac.md` — RBAC 설계 원칙 (최소 권한, 확장 경로, 프론트↔백 일관성)
   - `.env.example` — 키 이름 + placeholder만 포함, 실제 값은 절대 금지
   - `.gitignore` 보강 (없는 경우 생성)
   - `CLAUDE.md`의 가드레일 섹션 갱신

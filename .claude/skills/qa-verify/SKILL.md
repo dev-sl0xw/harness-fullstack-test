@@ -104,7 +104,60 @@ cd frontend && npm run build
 
 주석이 없는 파일 목록을 보고서에 기록.
 
-## 6. 인프라 검증
+## 6. RBAC 경계면 검증
+
+RBAC이 구현된 경우, 역할 기반 접근 제어의 프론트↔백 일관성을 검증한다.
+
+### 6-1. 역할별 API 접근 매트릭스
+
+백엔드 미들웨어 체인과 프론트엔드 UI/라우트 가드를 교차 비교한다:
+
+| 엔드포인트 | 백엔드 미들웨어 | 프론트 가드 | 프론트 UI 조건 | 일치? |
+|-----------|--------------|-----------|-------------|------|
+| GET /api/users | AuthMiddleware | ProtectedRoute | 인증 사용자 모두 | ? |
+| GET /api/users/:id | AuthMiddleware + RequireOwnerOrRole("admin") | ProtectedRoute | isOwner \|\| isAdmin | ? |
+| PUT /api/users/:id | AuthMiddleware + RequireOwnerOrRole("admin") | ProtectedRoute | canEdit(isOwner \|\| isAdmin) | ? |
+| DELETE /api/users/:id | AuthMiddleware + RequireRole("admin") | ProtectedRoute | isAdmin만 삭제 버튼 표시 | ? |
+
+**확인 항목:**
+1. 백엔드에서 `RequireRole`/`RequireOwnerOrRole` 미들웨어가 적용된 엔드포인트 목록 추출 (`main.go` 라우팅)
+2. 프론트에서 `RequireRole`/`isAdmin`/`isOwner` 조건이 적용된 페이지/컴포넌트 목록 추출
+3. 양쪽의 보호 수준이 일치하는지 비교:
+   - 백엔드에서 admin만 접근 가능한데 프론트에서 모든 사용자에게 UI를 보여주는 경우 → **불일치**
+   - 프론트에서 숨겼지만 백엔드에 미들웨어가 없는 경우 → **must-fix** (보안 취약)
+
+### 6-2. JWT Claims ↔ AuthContext 역할 동기화
+
+```
+1. auth_service.go: generateToken()에서 Role 클레임 포함 여부
+2. JWTClaims 구조체에 Role 필드 존재 여부
+3. auth_middleware.go: c.Set("user_role", claims.Role) 존재 여부
+4. frontend AuthContext: decodeToken()에서 role 추출 여부
+5. frontend types.ts: User 타입에 role 필드 존재 여부
+```
+
+### 6-3. DB 스키마 ↔ 모델 일치
+
+```
+1. migrations/에 role 컬럼 추가 SQL 존재 여부
+2. model/user.go에 Role 필드 존재 여부
+3. repository/에서 SELECT 쿼리에 role 포함 + Scan에 &user.Role 포함 여부
+4. 프론트 types.ts의 User.role 타입과 백엔드 JSON 태그 일치 여부
+```
+
+### 보고서 추가 섹션
+
+```markdown
+## RBAC 경계면 검증
+| 엔드포인트 | 백엔드 미들웨어 | 프론트 가드 | 일치 | 불일치 상세 |
+|-----------|--------------|-----------|------|-----------|
+
+## JWT Role 흐름 검증
+| 단계 | 소스 파일:줄 | 대상 파일:줄 | 일치 | 불일치 상세 |
+|------|-----------|-----------|------|-----------|
+```
+
+## 7. 인프라 검증
 
 - docker-compose.yml의 환경변수 ↔ config.go의 환경변수 목록 일치?
 - Dockerfile의 COPY 경로 ↔ 실제 파일 구조 일치?
@@ -135,6 +188,14 @@ cd frontend && npm run build
 
 ## 주석 검증
 - 주석 누락 파일: [목록]
+
+## RBAC 경계면 검증 (RBAC 구현 시)
+| 엔드포인트 | 백엔드 미들웨어 | 프론트 가드 | 일치 | 불일치 상세 |
+|-----------|--------------|-----------|------|-----------|
+
+## JWT Role 흐름 검증 (RBAC 구현 시)
+| 단계 | 소스 파일:줄 | 대상 파일:줄 | 일치 | 불일치 상세 |
+|------|-----------|-----------|------|-----------|
 
 ## 인프라 검증
 - Docker: PASS/FAIL
