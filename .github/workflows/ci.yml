@@ -125,3 +125,51 @@ jobs:
       # TypeScript 컴파일 + Vite 번들링이 성공하는지 확인
       - name: Build
         run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # 아키텍처 다이어그램 Mermaid 문법 검증
+  # ---------------------------------------------------------------------------
+  # docs/architecture/ 하위의 .mmd 파일들이 유효한 Mermaid 문법인지 확인한다.
+  # 왜 필요한가?
+  #   - Mermaid 문법 오류가 있으면 GitHub에서 다이어그램이 렌더링되지 않음
+  #   - .mmd 파일과 .md wrapper 파일이 짝을 이루는지 검증
+  #   - 최소 7개 다이어그램이 존재하는지 확인
+  diagrams-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '22'
+
+      # Mermaid CLI로 각 .mmd 파일을 SVG로 변환하여 문법 검증
+      - name: Validate Mermaid diagrams
+        run: |
+          set -e
+          if [ ! -d docs/architecture ] || [ -z "$(ls docs/architecture/*.mmd 2>/dev/null)" ]; then
+            echo "No .mmd files found — skipping validation"
+            exit 0
+          fi
+          for mmd in docs/architecture/*.mmd; do
+            echo "Validating: $mmd"
+            npx -y @mermaid-js/mermaid-cli -i "$mmd" -o /tmp/$(basename "$mmd" .mmd).svg
+          done
+
+      # 최소 7개 다이어그램 존재 확인
+      - name: Verify diagram count (≥7)
+        run: |
+          if [ ! -d docs/architecture ]; then exit 0; fi
+          count=$(ls docs/architecture/*.mmd 2>/dev/null | wc -l)
+          [ "$count" -ge 7 ] || { echo "Expected ≥7 diagrams, found $count"; exit 1; }
+
+      # .mmd ↔ .md wrapper 짝 검증
+      - name: Verify .mmd ↔ .md pairing
+        run: |
+          if [ ! -d docs/architecture ]; then exit 0; fi
+          for mmd in docs/architecture/*.mmd; do
+            wrapper="${mmd%.mmd}.md"
+            [ -f "$wrapper" ] || { echo "Missing wrapper: $wrapper"; exit 1; }
+          done
+          echo "All .mmd files have matching .md wrappers"
