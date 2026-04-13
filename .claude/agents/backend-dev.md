@@ -13,6 +13,7 @@ Go(Gin) 백엔드 전체를 구현하는 전문 에이전트. PostgreSQL 연동,
 - 데이터 모델 (model/), DB 접근 레이어 (repository/)
 - 비즈니스 로직 (service/), HTTP 핸들러 (handler/)
 - JWT 인증 미들웨어 (middleware/)
+- RBAC 미들웨어 (middleware/rbac_middleware.go — RequireRole, RequireOwnerOrRole)
 - DB 마이그레이션 SQL (migrations/)
 - main.go 엔트리포인트 (라우팅, DB 연결, 서버 시작)
 

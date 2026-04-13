@@ -73,6 +73,190 @@ cd backend && go build ./cmd/server
 
 에러 발생 시 수정 후 재빌드.
 
+## RBAC (Role-Based Access Control)
+
+역할 기반 접근 제어를 구현한다. 현재 `isOwner()` 단순 비교를 역할 기반 권한 체크로 확장한다.
+
+### 역할 모델
+
+```go
+// model/role.go
+type Role string
+
+const (
+    RoleUser  Role = "user"   // 기본 역할 — 본인 리소스만 접근
+    RoleAdmin Role = "admin"  // 관리자 — 모든 유저 리소스 접근 가능
+)
+```
+
+**설계 원칙:**
+- **단순 역할 모델 우선**: users 테이블에 `role` 컬럼 추가 (VARCHAR, 기본값 `'user'`). 별도 roles 테이블이나 user_roles 조인 테이블은 역할이 3개 이상 필요해질 때 도입한다.
+- **왜 조인 테이블이 아닌가?** 현재는 user/admin 2가지뿐이다. YAGNI 원칙에 따라 단순 컬럼으로 시작하고, 복합 권한이 필요해질 때 확장한다.
+
+### DB 마이그레이션
+
+```sql
+-- migrations/003_add_role_to_users.sql
+ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user';
+
+-- 기존 유저는 모두 'user' 역할을 가진다.
+-- 최초 admin은 DB에서 직접 UPDATE로 지정하거나, seed 스크립트를 사용한다.
+-- ALTER TABLE users ALTER COLUMN role SET DEFAULT 'user';
+```
+
+### JWT Claims 확장
+
+```go
+// service/auth_service.go — JWTClaims에 Role 추가
+type JWTClaims struct {
+    UserID int    `json:"user_id"`
+    Email  string `json:"email"`
+    Role   string `json:"role"`    // 역할 정보 추가
+    jwt.RegisteredClaims
+}
+
+// generateToken에서 Role을 포함시킨다
+claims := &JWTClaims{
+    UserID: user.ID,
+    Email:  user.Email,
+    Role:   string(user.Role),
+    // ...
+}
+```
+
+### RBAC 미들웨어
+
+```go
+// middleware/rbac_middleware.go
+
+// RequireRole은 특정 역할을 가진 사용자만 접근할 수 있도록 하는 미들웨어이다.
+// AuthMiddleware 이후에 체이닝하여 사용한다.
+//
+// 사용 예시:
+//   adminOnly := protected.Group("")
+//   adminOnly.Use(middleware.RequireRole("admin"))
+//   adminOnly.DELETE("/users/:id", userHandler.Delete)
+func RequireRole(roles ...string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        userRole, exists := c.Get("user_role")
+        if !exists {
+            c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+            c.Abort()
+            return
+        }
+        for _, r := range roles {
+            if userRole.(string) == r {
+                c.Next()
+                return
+            }
+        }
+        c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
+        c.Abort()
+    }
+}
+
+// RequireOwnerOrRole은 리소스 소유자이거나 특정 역할을 가진 사용자만 접근을 허용한다.
+// URL 파라미터 :id와 토큰의 user_id를 비교하고, 불일치하면 역할을 확인한다.
+// 이 패턴으로 "본인 또는 admin"을 구현한다.
+func RequireOwnerOrRole(roles ...string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // 1. 본인 확인
+        id, _ := strconv.Atoi(c.Param("id"))
+        currentUserID, _ := c.Get("user_id")
+        if currentUserID.(int) == id {
+            c.Next()
+            return
+        }
+        // 2. 역할 확인 (본인이 아닌 경우)
+        userRole, _ := c.Get("user_role")
+        for _, r := range roles {
+            if userRole.(string) == r {
+                c.Next()
+                return
+            }
+        }
+        c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+        c.Abort()
+    }
+}
+```
+
+### AuthMiddleware 수정
+
+```go
+// auth_middleware.go — Context에 role도 저장한다
+c.Set("user_id", claims.UserID)
+c.Set("user_email", claims.Email)
+c.Set("user_role", claims.Role)  // 역할 정보 추가
+```
+
+### 라우팅 패턴
+
+```go
+// main.go — 역할별 라우트 그룹
+protected := api.Group("")
+protected.Use(middleware.AuthMiddleware(authService))
+{
+    // 인증된 사용자 모두 접근 가능
+    protected.GET("/users", userHandler.GetAll)
+    protected.GET("/users/me", userHandler.GetMe)     // 본인 정보 조회
+
+    // 본인 또는 admin만 접근 가능
+    ownerOrAdmin := protected.Group("")
+    ownerOrAdmin.Use(middleware.RequireOwnerOrRole("admin"))
+    {
+        ownerOrAdmin.GET("/users/:id", userHandler.GetByID)
+        ownerOrAdmin.PUT("/users/:id", userHandler.Update)
+    }
+
+    // admin 전용
+    adminOnly := protected.Group("")
+    adminOnly.Use(middleware.RequireRole("admin"))
+    {
+        adminOnly.DELETE("/users/:id", userHandler.Delete)
+    }
+}
+```
+
+### User 모델 확장
+
+```go
+// model/user.go — Role 필드 추가
+type User struct {
+    ID           int       `json:"id"`
+    Email        string    `json:"email"`
+    PasswordHash string    `json:"-"`
+    Name         string    `json:"name"`
+    Role         Role      `json:"role"`     // 역할: "user" | "admin"
+    CreatedAt    time.Time `json:"created_at"`
+    UpdatedAt    time.Time `json:"updated_at"`
+}
+```
+
+### Repository 쿼리 수정
+
+모든 SELECT 쿼리에 `role` 컬럼을 포함하고, `Scan()`에서 `&user.Role`을 추가한다.
+Register(Create)는 역할을 지정하지 않으면 DB 기본값(`'user'`)이 적용된다.
+
+### API 응답에 role 포함
+
+```json
+// GET /api/users/:id 응답 예시
+{
+  "id": 1,
+  "email": "admin@example.com",
+  "name": "관리자",
+  "role": "admin",
+  "created_at": "2026-04-09T12:00:00Z",
+  "updated_at": "2026-04-09T12:00:00Z"
+}
+
+// POST /api/auth/login 응답 — JWT에 role 포함
+{
+  "token": "eyJ..."  // payload에 role 클레임 포함
+}
+```
+
 ## 환경변수
 
 | 변수 | 용도 | 기본값 |

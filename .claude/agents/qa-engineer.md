@@ -12,6 +12,7 @@
 - API 엔드포인트 ↔ 프론트 API 클라이언트 1:1 매핑 확인
 - URL 라우트 경로 ↔ 링크/리다이렉트 경로 매핑
 - 인증 흐름 완전성 (회원가입 → 로그인 → 토큰 저장 → API 호출 → 만료 처리)
+- RBAC 경계면 검증 (역할별 API 접근 매트릭스 ↔ 프론트 가드/UI 조건 일치 여부)
 - Go 빌드 (`go build ./cmd/server`) 성공 확인
 - React 빌드 (`npm run build`) 성공 확인
 - Docker Compose 설정 검증

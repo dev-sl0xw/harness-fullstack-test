@@ -99,3 +99,176 @@ cd frontend && npm run build
 | DELETE | `/api/users/:id` | 유저 삭제 |
 
 backend-dev로부터 정확한 요청/응답 shape을 SendMessage로 확인한 뒤 구현한다. 미수신 시 설계 스펙을 참조하되, 수정 가능하도록 api/client.ts에 집중 관리한다.
+
+## RBAC (Role-Based Access Control)
+
+백엔드의 역할 기반 접근 제어에 대응하여, 프론트엔드에서 역할별 UI 분기와 라우트 보호를 구현한다.
+
+### 타입 확장
+
+```typescript
+// types.ts — User 타입에 role 추가
+export interface User {
+  id: number
+  email: string
+  name: string
+  role: 'user' | 'admin'  // 역할 타입 추가
+  created_at: string
+  updated_at: string
+}
+
+// JWT 페이로드에서 추출하는 사용자 정보
+export interface AuthUser {
+  user_id: number
+  email: string
+  role: 'user' | 'admin'
+}
+```
+
+### AuthContext 확장
+
+```typescript
+// context/AuthContext.tsx — 역할 정보를 Context에 포함
+interface AuthContextType {
+  token: string | null
+  user: AuthUser | null       // JWT에서 디코딩한 사용자 정보
+  isAuthenticated: boolean
+  isAdmin: boolean            // 편의 getter: role === 'admin'
+  hasRole: (role: string) => boolean  // 역할 체크 함수
+  login: (token: string) => void
+  logout: () => void
+}
+
+// JWT 디코딩 함수
+function decodeToken(token: string): AuthUser | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return {
+      user_id: payload.user_id,
+      email: payload.email,
+      role: payload.role || 'user',
+    }
+  } catch {
+    return null
+  }
+}
+
+// Provider 내부에서 token이 변경될 때 user를 재계산
+const user = useMemo(() => token ? decodeToken(token) : null, [token])
+const isAdmin = user?.role === 'admin'
+const hasRole = useCallback((role: string) => user?.role === role, [user])
+```
+
+### RequireRole 라우트 가드
+
+```typescript
+// components/RequireRole.tsx
+// 특정 역할을 가진 사용자만 접근할 수 있는 라우트 가드이다.
+// ProtectedRoute(인증 여부)와 결합하여 사용한다.
+//
+// 사용 예시:
+//   <ProtectedRoute>
+//     <RequireRole role="admin">
+//       <AdminPage />
+//     </RequireRole>
+//   </ProtectedRoute>
+
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
+interface RequireRoleProps {
+  role: string
+  children: ReactNode
+  fallback?: string  // 권한 없을 때 이동할 경로 (기본: '/')
+}
+
+export function RequireRole({ role, children, fallback = '/' }: RequireRoleProps) {
+  const { hasRole } = useAuth()
+
+  if (!hasRole(role)) {
+    return <Navigate to={fallback} replace />
+  }
+
+  return <>{children}</>
+}
+```
+
+### 조건부 UI 렌더링 패턴
+
+```tsx
+// 역할에 따라 UI 요소를 표시/숨김한다.
+// 백엔드에서 403으로 차단하더라도, 프론트에서 UI를 숨겨 사용자 혼란을 방지한다.
+
+// 패턴 1: admin에게만 삭제 버튼 표시
+{isAdmin && (
+  <button onClick={handleDelete} className={styles.deleteButton}>
+    삭제
+  </button>
+)}
+
+// 패턴 2: 본인 또는 admin에게만 수정 폼 표시
+{(isOwner || isAdmin) && (
+  <form onSubmit={handleUpdate}>...</form>
+)}
+
+// 패턴 3: 역할에 따라 다른 네비게이션 메뉴
+{isAdmin && <Link to="/admin">관리자 대시보드</Link>}
+```
+
+### UserDetailPage 수정 패턴
+
+```tsx
+// pages/UserDetailPage.tsx — isOwner 판단에 admin 역할 추가
+const { user: authUser, isAdmin } = useAuth()
+const isOwner = authUser?.user_id === Number(id)
+const canEdit = isOwner || isAdmin  // 본인 또는 admin
+
+// 수정/삭제 UI
+{canEdit ? (
+  <form onSubmit={handleUpdate}>
+    {/* 수정 폼 */}
+    {isAdmin && <button onClick={handleDelete}>삭제</button>}
+  </form>
+) : (
+  <p>본인 또는 관리자만 수정할 수 있습니다.</p>
+)}
+```
+
+### UserListPage 수정 패턴
+
+```tsx
+// pages/UserListPage.tsx — 테이블에 role 컬럼 추가
+<thead>
+  <tr>
+    <th>ID</th>
+    <th>이름</th>
+    <th>이메일</th>
+    <th>역할</th>       {/* 추가 */}
+    <th>가입일</th>
+  </tr>
+</thead>
+<tbody>
+  {users.map((user) => (
+    <tr key={user.id}>
+      <td>{user.id}</td>
+      <td><Link to={`/users/${user.id}`}>{user.name}</Link></td>
+      <td>{user.email}</td>
+      <td>{user.role}</td>  {/* 추가 */}
+      <td>{new Date(user.created_at).toLocaleDateString('ko-KR')}</td>
+    </tr>
+  ))}
+</tbody>
+```
+
+### App.tsx 라우팅 패턴
+
+```tsx
+// App.tsx — admin 전용 페이지 라우트 추가 (필요 시)
+<Route path="/admin" element={
+  <ProtectedRoute>
+    <RequireRole role="admin">
+      <AdminDashboardPage />
+    </RequireRole>
+  </ProtectedRoute>
+} />
+```
